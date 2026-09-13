@@ -35,8 +35,8 @@
 
 .theme-light .gga-ara,
 .gga-ara.theme-light,
-[data-theme="light"] .gga-ara,
-.gga-ara[data-theme="light"] {
+[data-theme='light'] .gga-ara,
+.gga-ara[data-theme='light'] {
   --ara-teal: #0f5b5e;
   --ara-teal-dark: #083f42;
   --ara-gold: #d4aa4f;
@@ -54,8 +54,8 @@
 
 .theme-dark .gga-ara,
 .gga-ara.theme-dark,
-[data-theme="dark"] .gga-ara,
-.gga-ara[data-theme="dark"] {
+[data-theme='dark'] .gga-ara,
+.gga-ara[data-theme='dark'] {
   --ara-teal: #4fa5a8;
   --ara-teal-dark: #083f42;
   --ara-gold: #e2bb67;
@@ -217,7 +217,7 @@
 }
 
 .gga-ara select,
-.gga-ara input:not([type="checkbox"]):not([type="file"]) {
+.gga-ara input:not([type='checkbox']):not([type='file']) {
   color: var(--ara-text);
   border-color: var(--ara-border);
   background: var(--ara-field-bg);
@@ -471,7 +471,7 @@
 }
 
 .gga-ara-receipt-details span:not(:last-child)::after {
-  content: " ·";
+  content: ' ·';
 }
 
 .gga-ara-receipt footer button {
