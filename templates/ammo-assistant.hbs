@@ -1,0 +1,278 @@
+<div class="gga-ara-shell">
+  {{#if noActor}}
+    <section class="gga-ara-empty">
+      <i class="fa-solid fa-user-crosshairs"></i>
+      <h2>No actor selected</h2>
+      <p>Select exactly one token, or assign a character to your user.</p>
+      <div class="gga-ara-empty-actions">
+        <button type="button" data-action="use-selected"><i class="fa-solid fa-crosshairs"></i> Use selected token</button>
+        {{#if hasAvailableActors}}<button type="button" data-action="toggle-actor-picker"><i class="fa-solid fa-users"></i> Choose actor</button>{{/if}}
+      </div>
+      {{#if actorPickerOpen}}
+        <section class="gga-ara-actor-picker">
+          <input name="actorSearch" type="search" placeholder="Search actors…" autocomplete="off" autofocus>
+          <div class="gga-ara-actor-results">
+            {{#each availableActors}}
+              <button type="button" data-action="select-actor" data-actor-uuid="{{uuid}}" data-actor-option data-actor-name="{{searchName}}">
+                <img src="{{img}}" alt=""><span>{{name}}</span>
+              </button>
+            {{/each}}
+          </div>
+        </section>
+      {{/if}}
+    </section>
+  {{else}}
+    <header class="gga-ara-actor">
+      <img src="{{actor.img}}" alt="">
+      <div>
+        <span class="gga-ara-eyebrow">Current actor</span>
+        <strong>{{actor.name}}</strong>
+      </div>
+      <button type="button" class="plain" data-action="use-selected" data-tooltip="Use selected token">
+        <i class="fa-solid fa-crosshairs"></i>
+      </button>
+      {{#if hasAvailableActors}}
+        <button type="button" class="plain" data-action="toggle-actor-picker" data-tooltip="Choose another actor">
+          <i class="fa-solid fa-users"></i>
+        </button>
+      {{/if}}
+    </header>
+
+    {{#if actorPickerOpen}}
+      <section class="gga-ara-actor-picker">
+        <input name="actorSearch" type="search" placeholder="Search owned actors…" autocomplete="off" autofocus>
+        <div class="gga-ara-actor-results">
+          {{#each availableActors}}
+            <button type="button" class="{{#if current}}current{{/if}}" data-action="select-actor" data-actor-uuid="{{uuid}}" data-actor-option data-actor-name="{{searchName}}">
+              <img src="{{img}}" alt=""><span>{{name}}</span>{{#if current}}<i class="fa-solid fa-check"></i>{{/if}}
+            </button>
+          {{/each}}
+        </div>
+      </section>
+    {{/if}}
+
+    <nav class="gga-ara-tabs" aria-label="Assistant task">
+      {{#each modes}}
+        <button type="button" data-action="mode" data-mode="{{id}}" class="{{#if active}}active{{/if}}">
+          <i class="{{icon}}"></i><span>{{label}}</span>
+        </button>
+      {{/each}}
+    </nav>
+
+    {{#unless isLoadouts}}
+      <section class="gga-ara-loadout-strip">
+        <label for="gga-ara-loadout">Saved loadout</label>
+        <select id="gga-ara-loadout" name="selectedLoadoutId">
+          <option value="" {{#unless selectedLoadoutId}}selected{{/unless}}>Unsaved configuration</option>
+          {{#each loadouts}}
+            <option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+          {{/each}}
+        </select>
+        <button type="button" class="plain" data-action="new-loadout" data-tooltip="New loadout"><i class="fa-solid fa-plus"></i></button>
+      </section>
+    {{/unless}}
+
+    {{#if isFire}}
+      <main class="gga-ara-task">
+        {{#if noAttacks}}<div class="gga-ara-warning">This actor has no GGA ranged attacks.</div>{{/if}}
+        {{#if noTrackers}}
+          <div class="gga-ara-warning gga-ara-onboarding">
+            <span>This actor has no usable GGA Resource Trackers.</span>
+            {{#unless noAttacks}}<button type="button" data-action="setup-ammunition"><i class="fa-solid fa-wand-magic-sparkles"></i> Set up ammunition</button>{{/unless}}
+          </div>
+        {{/if}}
+
+        <div class="form-group stacked">
+          <label for="gga-ara-attack">Ranged attack</label>
+          <select id="gga-ara-attack" name="attackPath">
+            {{#each attacks}}<option value="{{path}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+          </select>
+          {{#if attack}}<p class="hint">RoF {{attack.rof}}{{#if attack.shots}} · Shots {{attack.shots}}{{/if}}{{#if attack.rcl}} · Rcl {{attack.rcl}}{{/if}}</p>{{/if}}
+        </div>
+
+        <div class="gga-ara-resource-card {{#if lowAfterShot}}low{{/if}}">
+          <div class="gga-ara-field-heading">
+            <label for="gga-ara-ammo">Magazine or resource</label>
+            <button type="button" class="plain text" data-action="create-magazine"><i class="fa-solid fa-plus"></i> Create tracker</button>
+          </div>
+          <select id="gga-ara-ammo" name="ammoPath">
+            {{#each trackers}}<option value="{{path}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+          </select>
+          {{#if ammo}}
+            <div class="gga-ara-meter">
+              <strong>{{ammo.value}}</strong><span>/ {{ammo.max}}</span>
+              <div class="track"><span style="width: {{ammoPercent}}%"></span></div>
+            </div>
+          {{/if}}
+        </div>
+
+        <div class="gga-ara-inline-fields">
+          <div class="form-group">
+            <label for="gga-ara-shots">Shots</label>
+            <input id="gga-ara-shots" name="shots" type="number" min="1" max="{{maximumRof}}" step="1" value="{{draft.shots}}">
+            <p class="hint">Maximum RoF {{maximumRof}}</p>
+          </div>
+          <div class="gga-ara-preview">
+            <span>On fire</span>
+            <strong>{{#if ammo}}{{ammo.value}} → {{ammoAfter}}{{else}}—{{/if}}</strong>
+            <small>{{spend}} spent{{#if lowAfterShot}} · low ammunition{{/if}}</small>
+          </div>
+        </div>
+
+        <details class="gga-ara-advanced" {{#if advancedOpen}}open{{/if}}>
+          <summary>Loadout and advanced options</summary>
+          <div class="gga-ara-details-grid">
+            <label>Loadout name<input name="name" type="text" value="{{draft.name}}"></label>
+            <label>Hotbar shooting
+              <select name="hotbarShotMode">
+                <option value="fixed" {{#if draft.hotbarFixed}}selected{{/if}}>Fire this fixed burst</option>
+                <option value="ask" {{#if draft.hotbarAsk}}selected{{/if}}>Ask for shots each time</option>
+              </select>
+            </label>
+            <label>Units per shot<input name="unitsPerShot" type="number" min="1" step="1" value="{{draft.unitsPerShot}}"></label>
+            <label>Flat cost per attack<input name="flatCost" type="number" min="0" step="1" value="{{draft.flatCost}}"></label>
+            <label>Low warning at<input name="lowWarningAt" type="number" min="0" step="1" value="{{draft.lowWarningAt}}"><small>0 uses one full-RoF attack.</small></label>
+            <label>Receipt visibility
+              <select name="visibility">
+                <option value="inherit" {{#if draft.visibilityInherit}}selected{{/if}}>Inherit attack / roll mode</option>
+                <option value="public" {{#if draft.visibilityPublic}}selected{{/if}}>Public</option>
+                <option value="self" {{#if draft.visibilitySelf}}selected{{/if}}>Self only</option>
+                <option value="gm" {{#if draft.visibilityGm}}selected{{/if}}>GM and acting user</option>
+              </select>
+            </label>
+          </div>
+        </details>
+
+        <footer class="gga-ara-actions">
+          <button type="button" class="secondary" data-action="save-loadout"><i class="fa-solid fa-floppy-disk"></i> Save loadout</button>
+          <button type="button" class="secondary" data-action="hotbar-fire"><i class="fa-solid fa-grip"></i> Add to hotbar</button>
+          <button type="button" class="primary" data-action="fire" {{#unless canFire}}disabled{{/unless}}><i class="fa-solid fa-bullseye"></i> Roll & spend</button>
+        </footer>
+      </main>
+    {{/if}}
+
+    {{#if isReload}}
+      <main class="gga-ara-task">
+        <div class="form-group stacked">
+          <label>Ranged attack</label>
+          <select name="attackPath">{{#each attacks}}<option value="{{path}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+          {{#if attack.shots}}<p class="hint">GGA Shots {{attack.shots}}. This records ammunition only; apply the required Ready manoeuvres normally.</p>{{/if}}
+        </div>
+        <div class="gga-ara-transfer">
+          <div class="gga-ara-resource-card">
+            <div class="gga-ara-field-heading">
+              <label>Magazine or resource</label>
+              <button type="button" class="plain text" data-action="create-magazine"><i class="fa-solid fa-plus"></i> Create</button>
+            </div>
+            <select name="ammoPath">{{#each trackers}}<option value="{{path}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+            {{#if ammo}}<strong>{{ammo.value}} / {{ammo.max}}</strong>{{/if}}
+          </div>
+          <i class="fa-solid fa-arrow-left"></i>
+          <div class="gga-ara-resource-card">
+            <div class="gga-ara-field-heading">
+              <label>Reserve source</label>
+              <button type="button" class="plain text" data-action="create-reserve"><i class="fa-solid fa-plus"></i> Create</button>
+            </div>
+            <select name="reservePath">
+              <option value="">Untracked replenishment</option>
+              {{#each reserveTrackers}}<option value="{{path}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+            </select>
+            {{#if reserve}}<strong>{{reserve.value}} available</strong>{{else}}<small>No reserve will be deducted.</small>{{/if}}
+          </div>
+        </div>
+        <div class="gga-ara-inline-fields">
+          <label>Reload amount
+            <select name="reloadMode">
+              <option value="to-full" {{#if draft.reloadFull}}selected{{/if}}>Fill to capacity</option>
+              <option value="fixed" {{#if draft.reloadFixed}}selected{{/if}}>Fixed amount</option>
+            </select>
+          </label>
+          <label>Fixed amount<input name="reloadAmount" type="number" min="0" step="1" value="{{draft.reloadAmount}}" {{#unless draft.reloadFixed}}disabled{{/unless}}></label>
+        </div>
+        <details class="gga-ara-advanced" {{#if advancedOpen}}open{{/if}}>
+          <summary>Loadout options</summary>
+          <div class="gga-ara-details-grid">
+            <label>Loadout name<input name="name" type="text" value="{{draft.name}}"></label>
+            <label>Receipt visibility
+              <select name="visibility">
+                <option value="inherit" {{#if draft.visibilityInherit}}selected{{/if}}>Current roll mode</option>
+                <option value="public" {{#if draft.visibilityPublic}}selected{{/if}}>Public</option>
+                <option value="self" {{#if draft.visibilitySelf}}selected{{/if}}>Self only</option>
+                <option value="gm" {{#if draft.visibilityGm}}selected{{/if}}>GM and acting user</option>
+              </select>
+            </label>
+          </div>
+        </details>
+        <footer class="gga-ara-actions">
+          <button type="button" class="secondary" data-action="save-loadout"><i class="fa-solid fa-floppy-disk"></i> Save loadout</button>
+          <button type="button" class="secondary" data-action="hotbar-reload"><i class="fa-solid fa-grip"></i> Add reload to hotbar</button>
+          <button type="button" class="primary" data-action="reload" {{#unless canReload}}disabled{{/unless}}><i class="fa-solid fa-arrows-rotate"></i> Reload</button>
+        </footer>
+      </main>
+    {{/if}}
+
+    {{#if isAdjust}}
+      <main class="gga-ara-task">
+        <div class="gga-ara-adjust-card">
+          <label>Resource tracker
+            <select name="adjustTrackerPath">{{#each allTrackers}}<option value="{{path}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+          </label>
+          <div class="gga-ara-inline-fields">
+            <label>Operation
+              <select name="adjustOperation">
+                <option value="spend" {{#if (eq draft.adjustOperation "spend")}}selected{{/if}}>Spend</option>
+                <option value="add" {{#if (eq draft.adjustOperation "add")}}selected{{/if}}>Add</option>
+                <option value="set" {{#if (eq draft.adjustOperation "set")}}selected{{/if}}>Set value</option>
+              </select>
+            </label>
+            <label>Amount<input name="adjustAmount" type="number" min="0" step="1" value="{{draft.adjustAmount}}"></label>
+          </div>
+        </div>
+        <details class="gga-ara-advanced" {{#if advancedOpen}}open{{/if}}>
+          <summary>Receipt options</summary>
+          <label>Receipt visibility
+            <select name="visibility">
+              <option value="inherit" {{#if draft.visibilityInherit}}selected{{/if}}>Current roll mode</option>
+              <option value="public" {{#if draft.visibilityPublic}}selected{{/if}}>Public</option>
+              <option value="self" {{#if draft.visibilitySelf}}selected{{/if}}>Self only</option>
+              <option value="gm" {{#if draft.visibilityGm}}selected{{/if}}>GM and acting user</option>
+            </select>
+          </label>
+        </details>
+        <footer class="gga-ara-actions single"><button type="button" class="primary" data-action="adjust" {{#unless canAdjust}}disabled{{/unless}}><i class="fa-solid fa-check"></i> Apply change</button></footer>
+      </main>
+    {{/if}}
+
+    {{#if isLoadouts}}
+      <main class="gga-ara-task gga-ara-loadouts">
+        <div class="gga-ara-loadout-heading">
+          <div><h2>Saved loadouts</h2><p>Configurations remain on the actor and survive GGA character imports.</p></div>
+          <div>
+            <button type="button" class="secondary" data-action="import-loadouts"><i class="fa-solid fa-file-import"></i> Import</button>
+            <button type="button" class="secondary" data-action="export-loadouts" {{#unless hasLoadouts}}disabled{{/unless}}><i class="fa-solid fa-file-export"></i> Export</button>
+            <input name="importFile" type="file" accept="application/json,.json" hidden>
+          </div>
+        </div>
+        {{#if hasLoadouts}}
+          <div class="gga-ara-loadout-list">
+            {{#each loadouts}}
+              <article class="gga-ara-loadout-row" draggable="true" data-hotbar-drag='{{draggableData}}'>
+                <div class="gga-ara-drag"><i class="fa-solid fa-grip-vertical"></i></div>
+                <div><strong>{{name}}</strong><small>Drag to the hotbar for instant shooting. Shift-click its macro to edit.</small></div>
+                <div class="gga-ara-row-actions">
+                  <button type="button" class="plain" data-action="load-loadout" data-loadout-id="{{id}}" data-tooltip="Open"><i class="fa-solid fa-pen"></i></button>
+                  <button type="button" class="plain" data-action="hotbar-fire" data-loadout-id="{{id}}" data-tooltip="Add fire to hotbar"><i class="fa-solid fa-bullseye"></i></button>
+                  <button type="button" class="plain" data-action="hotbar-reload" data-loadout-id="{{id}}" data-tooltip="Add reload to hotbar"><i class="fa-solid fa-arrows-rotate"></i></button>
+                  <button type="button" class="plain" data-action="duplicate-loadout" data-loadout-id="{{id}}" data-tooltip="Duplicate"><i class="fa-solid fa-copy"></i></button>
+                  <button type="button" class="plain danger" data-action="delete-loadout" data-loadout-id="{{id}}" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </article>
+            {{/each}}
+          </div>
+        {{else}}
+          <section class="gga-ara-empty compact"><p>No loadouts saved yet.</p><button type="button" data-action="new-loadout"><i class="fa-solid fa-plus"></i> Create first loadout</button></section>
+        {{/if}}
+      </main>
+    {{/if}}
+  {{/if}}
+</div>
