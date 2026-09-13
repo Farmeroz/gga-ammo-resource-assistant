@@ -1,3 +1,4 @@
+import * as log from './log.mjs';
 import { MODULE_ID } from './constants.mjs';
 import { attackLabel, finiteNumber, normalise, rangedAttackOtf } from './core.mjs';
 
@@ -197,7 +198,7 @@ class ShotPromptBridge {
       this.installed = true;
       return true;
     } catch (error) {
-      console.error(`${MODULE_ID} | Could not register the GGA shot prompt adapter.`, error);
+      log.error('Could not register the GGA shot prompt adapter.', error);
       return false;
     }
   }

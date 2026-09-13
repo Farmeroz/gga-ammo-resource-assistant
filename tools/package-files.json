@@ -1,0 +1,17 @@
+[
+  "LICENSE",
+  "README.md",
+  "USER-GUIDE.md",
+  "module.json",
+  "scripts/application.mjs",
+  "scripts/constants.mjs",
+  "scripts/core.mjs",
+  "scripts/gga-adapter.mjs",
+  "scripts/hotbar.mjs",
+  "scripts/log.mjs",
+  "scripts/module.mjs",
+  "scripts/operations.mjs",
+  "scripts/store.mjs",
+  "styles/ammo-assistant.css",
+  "templates/ammo-assistant.hbs"
+]

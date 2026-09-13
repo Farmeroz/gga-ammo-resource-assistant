@@ -1,3 +1,4 @@
+import * as log from './log.mjs';
 import {
   ACTIONS,
   DEFAULT_LOADOUT,
@@ -402,10 +403,7 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
     try {
       this._lastSyncedMacros = await syncLoadoutMacros({ actor: this.actor, loadout: saved });
     } catch (error) {
-      console.warn(
-        `${MODULE_ID} | The loadout was saved but its hotbar macros could not all be updated.`,
-        error,
-      );
+      log.warn('The loadout was saved but its hotbar macros could not all be updated.', error);
       ui.notifications.warn(
         'The loadout was saved, but a linked hotbar macro could not be updated.',
       );
@@ -604,10 +602,7 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
       try {
         await saveLoadoutToHotbar({ actor: this.actor, loadout: saved, action: 'fire' });
       } catch (error) {
-        console.warn(
-          `${MODULE_ID} | Initial setup succeeded but its hotbar action could not be created.`,
-          error,
-        );
+        log.warn('Initial setup succeeded but its hotbar action could not be created.', error);
         ui.notifications.warn('The loadout was created, but its hotbar action could not be added.');
       }
     }
@@ -814,7 +809,7 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
         this.element.querySelector('input[name="importFile"]')?.click();
       }
     } catch (error) {
-      console.error(`${MODULE_ID} |`, error);
+      log.error(error);
       ui.notifications.error(error.message || String(error));
     }
   }
@@ -847,7 +842,7 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
       );
       this.render({ force: true });
     } catch (error) {
-      console.error(`${MODULE_ID} |`, error);
+      log.error(error);
       ui.notifications.error(error.message || 'The loadout file could not be imported.');
     }
   }

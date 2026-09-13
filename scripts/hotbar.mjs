@@ -1,3 +1,4 @@
+import * as log from './log.mjs';
 import { FLAG_HOTBAR, MODULE_ID } from './constants.mjs';
 import { actorFromUuid } from './gga-adapter.mjs';
 import { executeFire, executeReload } from './operations.mjs';
@@ -131,7 +132,7 @@ export function handleHotbarDrop(_bar, data, slot) {
     if (!actor || !loadout) throw new Error('That saved loadout is no longer available.');
     await saveLoadoutToHotbar({ actor, loadout, action: data.action, slot });
   })().catch((error) => {
-    console.error(`${MODULE_ID} | Could not create the dropped hotbar action.`, error);
+    log.error('Could not create the dropped hotbar action.', error);
     ui.notifications.error(error?.message || 'The hotbar action could not be created.');
   });
   return false;

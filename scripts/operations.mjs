@@ -1,3 +1,4 @@
+import * as log from './log.mjs';
 import { MODULE_ID, FLAG_RECEIPT, SETTINGS, VISIBILITY } from './constants.mjs';
 import {
   attackLabel,
@@ -39,7 +40,7 @@ function escapeHtml(value) {
 }
 
 function notifyError(error) {
-  console.error(`${MODULE_ID} |`, error);
+  log.error(error);
   ui.notifications.error(error?.message || String(error));
 }
 
@@ -101,10 +102,7 @@ async function repairReferences(actor, loadout, resolved) {
   try {
     return await upsertLoadout(actor, repaired);
   } catch (error) {
-    console.warn(
-      `${MODULE_ID} | Loadout ran successfully but its repaired references could not be saved.`,
-      error,
-    );
+    log.warn('Loadout ran successfully but its repaired references could not be saved.', error);
     return repaired;
   }
 }
@@ -249,10 +247,7 @@ async function postReceiptSafely(options) {
   try {
     return await postReceipt(options);
   } catch (error) {
-    console.error(
-      `${MODULE_ID} | The resource changed, but its chat receipt could not be posted.`,
-      error,
-    );
+    log.error('The resource changed, but its chat receipt could not be posted.', error);
     ui.notifications.warn(
       'The resource was updated, but its chat receipt could not be posted. Undo is unavailable for this change.',
     );
