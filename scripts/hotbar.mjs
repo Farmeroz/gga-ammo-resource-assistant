@@ -1,7 +1,7 @@
-import { FLAG_HOTBAR, MODULE_ID } from "./constants.mjs";
-import { actorFromUuid } from "./gga-adapter.mjs";
-import { executeFire, executeReload } from "./operations.mjs";
-import { getLoadouts } from "./store.mjs";
+import { FLAG_HOTBAR, MODULE_ID } from './constants.mjs';
+import { actorFromUuid } from './gga-adapter.mjs';
+import { executeFire, executeReload } from './operations.mjs';
+import { getLoadouts } from './store.mjs';
 
 function macroCommand({ actorUuid, loadoutId, action }) {
   const args = JSON.stringify({ actorUuid, loadoutId, action });
@@ -10,15 +10,19 @@ function macroCommand({ actorUuid, loadoutId, action }) {
 
 function macroFlagMatches(macro, data) {
   const flag = macro.getFlag?.(MODULE_ID, FLAG_HOTBAR);
-  return flag?.actorUuid === data.actorUuid && flag?.loadoutId === data.loadoutId && flag?.action === data.action;
+  return (
+    flag?.actorUuid === data.actorUuid &&
+    flag?.loadoutId === data.loadoutId &&
+    flag?.action === data.action
+  );
 }
 
 function macroName(loadout, action) {
-  return `${action === "reload" ? "Reload" : "Fire"} – ${loadout.name}`;
+  return `${action === 'reload' ? 'Reload' : 'Fire'} – ${loadout.name}`;
 }
 
 export function findLoadoutMacros(actorUuid, loadoutId) {
-  return game.macros.filter(macro => {
+  return game.macros.filter((macro) => {
     if (!macro.isOwner) return false;
     const flag = macro.getFlag?.(MODULE_ID, FLAG_HOTBAR);
     return flag?.actorUuid === actorUuid && flag?.loadoutId === loadoutId;
@@ -31,8 +35,8 @@ export async function syncLoadoutMacros({ actor, loadout }) {
     const flag = macro.getFlag(MODULE_ID, FLAG_HOTBAR);
     await macro.update({
       name: macroName(loadout, flag.action),
-      img: loadout.attack?.img || actor.img || "icons/svg/bullseye.svg",
-      command: macroCommand(flag)
+      img: loadout.attack?.img || actor.img || 'icons/svg/bullseye.svg',
+      command: macroCommand(flag),
     });
   }
   return macros.length;
@@ -58,51 +62,64 @@ function currentPageSlots() {
 
 function findEmptySlot() {
   const hotbar = game.user?.hotbar ?? {};
-  return currentPageSlots().find(slot => !hotbar[slot])
-    ?? Array.from({ length: 50 }, (_, index) => index + 1).find(slot => !hotbar[slot])
-    ?? null;
+  return (
+    currentPageSlots().find((slot) => !hotbar[slot]) ??
+    Array.from({ length: 50 }, (_, index) => index + 1).find((slot) => !hotbar[slot]) ??
+    null
+  );
 }
 
-export async function saveLoadoutToHotbar({ actor, loadout, action = "fire", slot = null }) {
-  if (!actor || !loadout) throw new Error("Save the loadout before adding it to the hotbar.");
+export async function saveLoadoutToHotbar({ actor, loadout, action = 'fire', slot = null }) {
+  if (!actor || !loadout) throw new Error('Save the loadout before adding it to the hotbar.');
   const data = { actorUuid: actor.uuid, loadoutId: loadout.id, action };
-  let macro = game.macros.find(candidate => candidate.isOwner && macroFlagMatches(candidate, data));
+  let macro = game.macros.find(
+    (candidate) => candidate.isOwner && macroFlagMatches(candidate, data),
+  );
   const update = {
     name: macroName(loadout, action),
-    type: "script",
-    img: loadout.attack?.img || actor.img || "icons/svg/bullseye.svg",
+    type: 'script',
+    img: loadout.attack?.img || actor.img || 'icons/svg/bullseye.svg',
     command: macroCommand(data),
-    flags: { [MODULE_ID]: { [FLAG_HOTBAR]: data } }
+    flags: { [MODULE_ID]: { [FLAG_HOTBAR]: data } },
   };
   if (macro) await macro.update(update);
   else macro = await Macro.create(update);
 
-  const existingSlot = Object.entries(game.user.hotbar ?? {}).find(([, macroId]) => macroId === macro.id)?.[0];
+  const existingSlot = Object.entries(game.user.hotbar ?? {}).find(
+    ([, macroId]) => macroId === macro.id,
+  )?.[0];
   const targetSlot = slot ?? (existingSlot ? Number(existingSlot) : findEmptySlot());
   if (targetSlot) {
     await game.user.assignHotbarMacro(macro, targetSlot);
     ui.notifications.info(`${macro.name} saved to hotbar slot ${targetSlot}.`);
   } else {
-    ui.notifications.warn(`${macro.name} was created in the Macros directory, but all hotbar slots are occupied.`);
+    ui.notifications.warn(
+      `${macro.name} was created in the Macros directory, but all hotbar slots are occupied.`,
+    );
   }
   return macro;
 }
 
-export async function runHotbar({ actorUuid, loadoutId, action = "fire" } = {}, triggerEvent = null) {
+export async function runHotbar(
+  { actorUuid, loadoutId, action = 'fire' } = {},
+  triggerEvent = null,
+) {
   let actor = await actorFromUuid(actorUuid);
   if (!actor) {
-    ui.notifications.error("The actor saved in this hotbar action is no longer available.");
+    ui.notifications.error('The actor saved in this hotbar action is no longer available.');
     return false;
   }
-  const loadout = getLoadouts(actor).find(item => item.id === loadoutId);
+  const loadout = getLoadouts(actor).find((item) => item.id === loadoutId);
   if (!loadout) {
     ui.notifications.error(`The saved loadout was not found on ${actor.name}.`);
     return false;
   }
   if (triggerEvent?.shiftKey) {
-    return game.modules.get(MODULE_ID)?.api?.open({ actor, loadoutId, mode: action === "reload" ? "reload" : "fire" });
+    return game.modules
+      .get(MODULE_ID)
+      ?.api?.open({ actor, loadoutId, mode: action === 'reload' ? 'reload' : 'fire' });
   }
-  if (action === "reload") return executeReload({ actor, loadout });
+  if (action === 'reload') return executeReload({ actor, loadout });
   return executeFire({ actor, loadout, promptIfConfigured: true });
 }
 
@@ -110,12 +127,12 @@ export function handleHotbarDrop(_bar, data, slot) {
   if (data?.type !== MODULE_ID) return true;
   void (async () => {
     const actor = await actorFromUuid(data.actorUuid);
-    const loadout = getLoadouts(actor).find(item => item.id === data.loadoutId);
-    if (!actor || !loadout) throw new Error("That saved loadout is no longer available.");
+    const loadout = getLoadouts(actor).find((item) => item.id === data.loadoutId);
+    if (!actor || !loadout) throw new Error('That saved loadout is no longer available.');
     await saveLoadoutToHotbar({ actor, loadout, action: data.action, slot });
-  })().catch(error => {
+  })().catch((error) => {
     console.error(`${MODULE_ID} | Could not create the dropped hotbar action.`, error);
-    ui.notifications.error(error?.message || "The hotbar action could not be created.");
+    ui.notifications.error(error?.message || 'The hotbar action could not be created.');
   });
   return false;
 }

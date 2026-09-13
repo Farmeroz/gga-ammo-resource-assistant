@@ -13,12 +13,8 @@
     "minimum": "13",
     "verified": "14.367"
   },
-  "esmodules": [
-    "scripts/module.mjs"
-  ],
-  "styles": [
-    "styles/ammo-assistant.css"
-  ],
+  "esmodules": ["scripts/module.mjs"],
+  "styles": ["styles/ammo-assistant.css"],
   "relationships": {
     "systems": [
       {
