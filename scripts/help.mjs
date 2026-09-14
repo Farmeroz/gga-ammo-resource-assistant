@@ -35,7 +35,7 @@ export const helpConfig = {
     ammoPath: 'Choose the resource tracker spent when firing and refilled when reloading.',
     shots:
       'Number of shots for this attack. This drives GGA’s rapid-fire calculation and the resource cost.',
-    name: 'Name used to identify this loadout.',
+    name: 'Name used to identify this loadout or resource tracker.',
     hotbarShotMode:
       'Choose whether the shooting macro uses this burst or asks for a shot count each time.',
     unitsPerShot: 'Resource units spent for each shot, before adding the flat cost.',
