@@ -45,3 +45,7 @@ GURPS is a trademark of Steve Jackson Games. This unofficial module is not affil
 ## Licence
 
 Copyright © 2026 Phil Brown. Released under the [MIT License](LICENSE).
+
+## Help tooltips
+
+Hover over a control or focus it with the keyboard for a short explanation. Press Escape to dismiss the help. Under **Configure Settings → Module Settings → GGA Ammunition & Resource Assistant**, turn off **Show help tooltips** to hide optional help on your client. Labels, settings descriptions, and important notices remain visible. Other users keep their own preference.
