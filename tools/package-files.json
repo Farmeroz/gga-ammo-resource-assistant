@@ -7,11 +7,13 @@
   "scripts/constants.mjs",
   "scripts/core.mjs",
   "scripts/gga-adapter.mjs",
+  "scripts/help.mjs",
   "scripts/hotbar.mjs",
   "scripts/log.mjs",
   "scripts/module.mjs",
   "scripts/operations.mjs",
   "scripts/store.mjs",
+  "scripts/tooltip-engine.mjs",
   "styles/ammo-assistant.css",
   "templates/ammo-assistant.hbs"
 ]

@@ -441,6 +441,7 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const capacity = reserve ? 100 : suggestedCapacity(attack);
     const suggestedName = `${attackLabel(attack) || 'Ammunition'} ${reserve ? 'Reserve' : 'Magazine'}`;
     const result = await foundry.applications.api.DialogV2.input({
+      classes: ['gga-ara-help-dialog'],
       window: { title: `Create ${reserve ? 'Reserve' : 'Magazine'} Tracker` },
       position: { width: 430 },
       content: `<div class="gga-ara-quick-prompt gga-ara-setup-fields">
@@ -484,6 +485,7 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
       )
       .join('');
     const result = await foundry.applications.api.DialogV2.input({
+      classes: ['gga-ara-help-dialog'],
       window: { title: 'Set Up Ammunition' },
       position: { width: 540 },
       content: `<div class="gga-ara-quick-prompt gga-ara-setup-wizard">
@@ -772,6 +774,7 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
           callback: () => 'cancel',
         });
         const decision = await foundry.applications.api.DialogV2.wait({
+          classes: ['gga-ara-help-dialog'],
           window: { title: 'Delete Loadout' },
           content: `<p>Delete <strong>${escapeHtml(loadout.name)}</strong>?${
             linkedMacros.length ? ' You can also remove its linked hotbar macros that you own.' : ''

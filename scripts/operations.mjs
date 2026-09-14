@@ -115,6 +115,7 @@ async function chooseShots({ maximum, available, initial }) {
       <input name="shots" type="number" min="1" max="${max}" step="1" value="${Math.min(initial, max)}" autofocus>
     </div>`;
   const result = await foundry.applications.api.DialogV2.input({
+    classes: ['gga-ara-help-dialog'],
     window: { title: 'Shots to Fire' },
     content,
     ok: { label: 'Continue' },
@@ -157,6 +158,7 @@ async function chooseInsufficientAction({
   });
 
   return foundry.applications.api.DialogV2.wait({
+    classes: ['gga-ara-help-dialog'],
     window: { title: 'Not Enough Ammunition' },
     content: `<p>The configured attack needs more ammunition than is available.</p>
       <dl class="gga-ara-facts">
