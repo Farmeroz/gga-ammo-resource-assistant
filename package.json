@@ -1,6 +1,6 @@
 {
   "name": "gga-ammo-resource-assistant",
-  "version": "1.0.4",
+  "version": "1.1.2",
   "private": true,
   "type": "module",
   "engines": {

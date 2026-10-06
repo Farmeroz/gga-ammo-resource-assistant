@@ -26,6 +26,62 @@ If no token is selected, the assistant uses your assigned character where possib
 
 Use the people button beside the current actor to search all actors you own. GMs can search all world actors, including actors that do not currently have a token on the scene.
 
+## Choose an action
+
+The **Choose action** screen offers six starting points. Use **Fire** for an ordinary sheet attack, **Bow sequence** for bow preparation and shots, **Throw a weapon** for weapons with a sheet attack, and **Throw an object** for improvised objects. **Reload** and **Adjust** retain the existing tracker tools.
+
+The specialised views show relevant fields and a preview of the rolls or calculated result. Optional skill links, prerequisite checks, and overrides sit under **Skills and rule checks**. **Run sequence** executes all remaining preparation and attack rolls automatically. It stops on failed preparation, cancellation, or an error. Ordinary missed attacks still spend ammunition and do not stop the remaining attacks. Same-target attacks reuse the initial GGA bucket modifiers. Enable different targets to pause between attacks for retargeting, then use **Continue sequence**. **One step** remains available for manual control.
+
+### Bow sequences
+
+1. Choose the exact attack/usage and an arrow tracker, or explicitly choose untracked quantity.
+2. Declare whether the arrows are in the quiver, in hand, or the bow is already readied.
+3. Choose one or two arrows and match the manoeuvre to the actor's current GGA manoeuvre.
+4. Review the skills and preview, then select **Run sequence** for Fast-Draw, quick-readying, and each attack as applicable.
+
+Heroic Archer is detected by name when unique. Select the applicable Weapon Master specialisation explicitly. Renamed traits and techniques can be linked manually. Quick-shooting penalties are -6 normally, -3 with either advantage, or -1 with both; linked techniques can reduce the appropriate penalty to zero. An already readied shot has no quick-shooting penalty. Two-arrow attacks use two separate one-arrow attack rolls, including their Dual-Weapon Attack penalty. They do not use ordinary rapid-fire hit calculation.
+
+Preparation rolls temporarily set aside the GGA Modifier Bucket and restore it afterwards. Attack rolls consume the bucket normally. The manoeuvre selector affects preparation and Heroic Accuracy eligibility; it does not set the actor's manoeuvre or supply GGA's normal attack modifiers. Apply normal range, visibility, manoeuvre, off-hand, and other attack modifiers in GGA. Leave **Apply Heroic Acc here** unchecked if it is already included elsewhere.
+
+A cancelled roll leaves the current step pending and spends nothing. Failed quick-readying ends the sequence with the bow ready for a later turn. Critical readying failure drops the bow, without spending an arrow as a shot (MA119). Failed arrow Fast-Draw ends the sequence and records dropped arrows. A critical arrow draw drops the quiver and scatters its contents (B195; MA120): the selected quiver tracker is emptied into its recoverable count. Use a tracker for one quiver, not combined reserves. Critical Fast-Draw of a thrown weapon records that weapon as dropped (B194). These are specific preparation consequences, not rolls on the critical attack table.
+
+Critical failures stop all remaining steps and create a persistent **Critical effects to resolve** panel for that actor's action type. Recover items and handle required Ready manoeuvres or other consequences at the table, then use **Resolve effects** to acknowledge resolution before a later sequence. This does not refill trackers, heal injury, move equipment, or advance a turn. Resource undo does not clear a critical-effect record. Critical attack failures also stop for the GGA critical result to be resolved; the assistant does not roll a second critical table. Critical preparation successes allow the sequence to continue normally, without making the subsequent attack automatically succeed.
+
+**End sequence** preserves completed rolls and costs. Review readiness before starting again; combat turns and equipment readiness are not advanced automatically.
+
+### Throw a weapon
+
+Use the exact thrown-weapon attack on the sheet. Choose a supply tracker and the number of primary-hand throws. With Heroic Thrower, declare that the weapon is eligible and choose any off-hand throws. Spears and javelins are outside that advantage's small-weapon benefit.
+
+The preview lists each draw and attack separately. Heroic Thrower waives ordinary Fast-Draw rolls at skill 16+, and multiple-throw penalties are calculated separately for each hand. An applicable Weapon Master reduces the supported penalties. Weapon damage remains the sheet's damage; the assistant does not add Weapon Master or Throwing Art damage to sheet attacks.
+
+Thrown and dropped tracked items enter a recovery count. **Recover items** asks how many usable items were actually recovered, returns those to the tracker, and reduces the recovery count. Recovery and spending receipts support the existing guarded resource undo. Undo does not undo dice rolls, damage, or combat manoeuvres.
+
+### Throw an object
+
+Enter the object and its weight in pounds or kilograms. Choose **Basic DX**, **Throwing**, or **Throwing Art**, and a specific target or general area. Ordinary Throwing requires a suitable small, relatively smooth, palm-sized object. Throwing Art exposes its special improvised-weapon damage profiles.
+
+The preview shows maximum distance, damage, base target, and one- or two-handed handling. Expand the rules section to correct ST, DX, actual Basic Lift, damage, or skill links. Ready the object before rolling. The separate **Roll damage** button is available after the attack so defences can be resolved first. Object throws do not change equipment or resource quantities.
+
+The calculation uses actual Basic Lift for the weight ratio and weight limits. Throwing skill bonuses modify the final ST distance multiplier only. Trained area throws do not receive an automatic +3. Untrained throws use DX-3 against a specific target and DX for a general area. Throwing Art damage bonuses apply per die after the relevant weight adjustment or improvised profile.
+
+### Campaign rules, prerequisites, and saved actions
+
+The GM records the campaign’s quick-shooting, two-arrow, Dungeon Fantasy archery, rapid throwing, Heroic Thrower, and Throwing Art options in Module Settings. These switches default off and inform advisory checks. Unmet RAW or campaign checks are listed in the view, but do not disable Run sequence. The player can proceed without an override checkbox, special override permission, or written reason. The assistant automatically lists unmet checks in chat once a roll occurs, respecting roll visibility even if resource receipts are disabled. A cancelled roll posts no rule-check note. Manual skill levels are also reported rather than blocked. Actor ownership, valid roll inputs, available ammunition, and unresolved critical effects remain separate operational requirements.
+
+Save a configuration as a loadout or add it directly to the hotbar. Specialised hotbar actions open the configured workflow rather than immediately rolling its entire sequence. Saved attack, resource, and explicit skill/advantage links are checked by identity; missing links require replacement. Cinematic settings are checked again for advisory notes when the action is used.
+
+This first implementation supports the listed bow and throwing sequences. It does not automate additional bow volleys from Extra Attack, the Heroic Thrower alternative rapid-fire option, firearm Fast-Draw (Ammo)/Quick Reload, target distance measurement, hit locations, defence penalties, or ammunition recovery on the scene. GGA action-economy enforcement remains in force and must be configured consistently with the campaign's permitted attacks.
+
+### GURPS Fourth Edition references
+
+- **Basic Set**, pp. 194-195: Fast-Draw; p. 226: Throwing and Throwing Art; pp. 355-356: throwing distance, weight, handling, and damage.
+- **Martial Arts**, p. 45: Heroic Archer; p. 83: Dual-Weapon Attack; p. 103: multiple Fast-Draw; pp. 119-121: quick-shooting bows and multiple thrown attacks.
+- **Dungeon Fantasy 11: Power-Ups**, pp. 32-33: Double-Shot and Quick-Shot.
+- **Dungeon Fantasy Denizens: Thieves**, pp. 22-23: Heroic Thrower.
+
+These are calculation references, not substitutes for the publications. Confirm unusual builds and interacting optional rules with the GM.
+
 ## First-time ammunition setup
 
 If an actor has a ranged attack but no suitable Resource Trackers, the Fire view offers **Set up ammunition**.

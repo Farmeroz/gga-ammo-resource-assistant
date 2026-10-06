@@ -15,11 +15,17 @@ export async function openAssistant({
 } = {}) {
   actor ??= selectedActor();
   if (assistant?.rendered) {
+    if (assistant.workflow?.busy || assistant.workflow?.session) {
+      ui.notifications.warn('Finish or end the current sequence before opening another action.');
+      assistant.bringToFront();
+      return assistant;
+    }
     if (actor || actorUuid) {
       assistant.actor = actor;
       assistant.actorUuid = actor?.uuid || actorUuid;
       assistant._actorInitialised = '';
       assistant.draft = null;
+      assistant.workflow = null;
       assistant.selectedLoadoutId = loadoutId;
       assistant.actorPickerOpen = false;
     }

@@ -171,7 +171,7 @@ async function chooseInsufficientAction({
   });
 }
 
-function visibilityData(visibility, inherited = null) {
+export function visibilityData(visibility, inherited = null) {
   const data = {};
   if (visibility === VISIBILITY.INHERIT && inherited) {
     if (inherited.whisper?.length) data.whisper = inherited.whisper;
@@ -245,7 +245,7 @@ async function postReceipt({
   return ChatMessage.create(messageData);
 }
 
-async function postReceiptSafely(options) {
+export async function postReceiptSafely(options) {
   try {
     return await postReceipt(options);
   } catch (error) {
@@ -276,6 +276,11 @@ export async function executeFire({
   shots = null,
   promptIfConfigured = true,
 } = {}) {
+  if (loadout?.workflow) {
+    return game.modules
+      .get(MODULE_ID)
+      ?.api?.open({ actor, loadoutId: loadout.id, mode: loadout.workflow.kind });
+  }
   try {
     assertOwnership(actor);
     let resolved = resolveLoadoutRecords(actor, loadout);

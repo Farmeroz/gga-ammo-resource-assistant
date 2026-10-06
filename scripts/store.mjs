@@ -7,8 +7,10 @@ import {
   VISIBILITY,
 } from './constants.mjs';
 import { makeLoadout } from './core.mjs';
+import { registerActionSettings } from './action-workflow.mjs';
 
 export function registerSettings() {
+  registerActionSettings();
   game.settings.register(MODULE_ID, SETTINGS.SHOW_CONTROL, {
     name: `${MODULE_TITLE}: Show Token Control`,
     hint: 'Adds an Ammunition & Resource Assistant button to Token Controls.',

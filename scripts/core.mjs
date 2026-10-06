@@ -208,6 +208,13 @@ export function makeLoadout(input = {}, randomId = () => crypto.randomUUID()) {
 export function validateLoadout(loadout, { maximumRof = Infinity } = {}) {
   const errors = [];
   if (!String(loadout?.name ?? '').trim()) errors.push('Enter a loadout name.');
+  if (loadout?.workflow) {
+    if (!['bow', 'throw', 'object'].includes(loadout.workflow.kind))
+      errors.push('Unknown action workflow.');
+    if (loadout.workflow.kind !== 'object' && !loadout?.attack?.name)
+      errors.push('Choose a ranged attack.');
+    return errors;
+  }
   if (!loadout?.attack?.name) errors.push('Choose a ranged attack.');
   if (!loadout?.ammo?.name) errors.push('Choose an ammunition tracker.');
   if (loadout?.reserve?.path && loadout.reserve.path === loadout.ammo?.path) {

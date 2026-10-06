@@ -6,6 +6,10 @@ export const FLAG_HOTBAR = 'hotbar';
 export const LOADOUT_SCHEMA_VERSION = 1;
 
 export const ACTIONS = Object.freeze({
+  HOME: 'home',
+  BOW: 'bow',
+  THROW: 'throw',
+  OBJECT: 'object',
   FIRE: 'fire',
   RELOAD: 'reload',
   ADJUST: 'adjust',
