@@ -19,7 +19,7 @@ function macroFlagMatches(macro, data) {
 }
 
 function macroName(loadout, action) {
-  return `${action === 'reload' ? 'Reload' : 'Fire'} – ${loadout.name}`;
+  return `${action === 'reload' ? 'Reload' : loadout.workflow ? 'Action' : 'Fire'} – ${loadout.name}`;
 }
 
 export function findLoadoutMacros(actorUuid, loadoutId) {
@@ -116,9 +116,11 @@ export async function runHotbar(
     return false;
   }
   if (triggerEvent?.shiftKey) {
-    return game.modules
-      .get(MODULE_ID)
-      ?.api?.open({ actor, loadoutId, mode: action === 'reload' ? 'reload' : 'fire' });
+    return game.modules.get(MODULE_ID)?.api?.open({
+      actor,
+      loadoutId,
+      mode: action === 'reload' ? 'reload' : (loadout.workflow?.kind ?? 'fire'),
+    });
   }
   if (action === 'reload') return executeReload({ actor, loadout });
   return executeFire({ actor, loadout, promptIfConfigured: true });

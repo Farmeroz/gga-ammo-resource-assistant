@@ -2,6 +2,19 @@
 
 A Foundry VTT module for GURPS Game Aid that manages ammunition, reloads, and other expendable Resource Trackers. Saved loadouts can be placed on the macro hotbar for instant shooting or reloading.
 
+Choose an action first: **Fire**, **Bow sequence**, **Throw a weapon**, **Throw an object**, **Reload**, or **Adjust**. The guided GURPS Fourth Edition workflows show only the relevant controls, preview preparation and attacks, and show cinematic rule checks as advisories, with automatic chat notes when a player proceeds.
+
+Bow sequences support Fast-Draw, quick-shooting, Heroic Archer, applicable Weapon Master, and two-arrow attacks. Weapon throws support multiple throws and Heroic Thrower. Object throws calculate range, handling, and damage using DX, Throwing, or Throwing Art. Saved action shortcuts reopen the guided workflow.
+
+## What's new in 1.1.2
+
+- **Run sequence** handles preparation and attacks in one click. **One step** remains available, and different-target sequences pause for retargeting.
+- Unmet RAW and campaign checks are advisory. Players can proceed without an override checkbox or written reason; the assistant records the unmet checks in chat.
+- Preparation failures stop firing. Critical effects record dropped weapons or spilled quiver contents and remain visible until resolved. Recoverable items are tracked separately from ammunition fired.
+- Cancelled rolls spend nothing. Same-target attacks retain their target modifiers, while each completed attack spends its own projectile.
+
+After updating, refresh connected Foundry clients. Existing loadouts remain usable; their old override/reason fields no longer control execution. Campaign switches now inform rule advisories. See the user guide for supported rules, references, and recovery behaviour.
+
 ## Requirements
 
 - Foundry VTT 13 or 14
@@ -36,7 +49,7 @@ See [USER-GUIDE.md](USER-GUIDE.md) for complete instructions.
 
 ## Scope
 
-This module records changes to user-created GGA Resource Trackers. It does not include weapon statistics, equipment tables, or rules text from GURPS publications.
+This module records changes to user-created GGA Resource Trackers and calculates selected GURPS Fourth Edition throwing and cinematic preparation rules. Weapon attacks come from the actor's sheet. It does not include equipment tables or reproduce rulebook prose. See the user guide for rule references, supported options, and the division of work with GGA.
 
 Report problems through [GitHub Issues](https://github.com/Farmeroz/gga-ammo-resource-assistant/issues).
 

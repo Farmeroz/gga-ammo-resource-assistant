@@ -1,4 +1,6 @@
 import * as log from './log.mjs';
+import { ActionWorkflow } from './action-workflow.mjs';
+import { ACTION_KINDS } from './action-rules.mjs';
 import {
   ACTIONS,
   DEFAULT_LOADOUT,
@@ -104,7 +106,8 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
     super(options);
     this.actor = options.actor ?? null;
     this.actorUuid = options.actorUuid ?? this.actor?.uuid ?? '';
-    this.mode = Object.values(ACTIONS).includes(options.mode) ? options.mode : getLastView().mode;
+    this.mode = Object.values(ACTIONS).includes(options.mode) ? options.mode : ACTIONS.HOME;
+    this.workflow = null;
     this.selectedLoadoutId = options.loadoutId ?? '';
     this.draft = null;
     this._actorInitialised = '';
@@ -163,8 +166,14 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (this._actorInitialised === actor.uuid && this.draft) return;
     this._actorInitialised = actor.uuid;
     this.selectedLoadoutId ||= rememberedLoadoutId(actor);
+    const eligible =
+      ACTION_KINDS.includes(this.mode) ||
+      this.mode === ACTIONS.HOME ||
+      this.mode === ACTIONS.LOADOUTS
+        ? loadouts
+        : loadouts.filter((loadout) => !loadout.workflow);
     const selected =
-      loadouts.find((loadout) => loadout.id === this.selectedLoadoutId) ?? loadouts[0] ?? null;
+      eligible.find((loadout) => loadout.id === this.selectedLoadoutId) ?? eligible[0] ?? null;
     this.selectedLoadoutId = selected?.id ?? '';
     this.draft = selected
       ? this._draftFromLoadout(selected, attacks, trackers)
@@ -196,6 +205,18 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const allTrackers = collectResourceTrackers(actor, { includeDamage: true });
     const loadouts = getLoadouts(actor);
     await this._ensureDraft(actor, attacks, trackers, loadouts);
+    const specialised = ACTION_KINDS.includes(this.mode);
+    if (
+      specialised &&
+      (!this.workflow ||
+        this.workflow.actor.uuid !== actor.uuid ||
+        this.workflow.kind !== this.mode)
+    ) {
+      const saved = loadouts.find(
+        (l) => l.id === this.selectedLoadoutId && l.workflow?.kind === this.mode,
+      );
+      this.workflow = new ActionWorkflow(actor, this.mode, saved);
+    }
 
     const attack =
       attacks.find((record) => record.path === this.draft.attackPath) ?? attacks[0] ?? null;
@@ -260,6 +281,11 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
       isReload: this.mode === ACTIONS.RELOAD,
       isAdjust: this.mode === ACTIONS.ADJUST,
       isLoadouts: this.mode === ACTIONS.LOADOUTS,
+      isHome: this.mode === ACTIONS.HOME,
+      isWorkflow: specialised,
+      workflowHtml: specialised ? this.workflow.render() : '',
+      showLoadoutStrip:
+        !specialised && this.mode !== ACTIONS.HOME && this.mode !== ACTIONS.LOADOUTS,
       loadouts: loadoutOptions,
       hasLoadouts: loadouts.length > 0,
       selectedLoadoutId: this.selectedLoadoutId,
@@ -305,6 +331,22 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
   _modes() {
     return [
       {
+        id: ACTIONS.HOME,
+        label: 'Choose action',
+        icon: 'fa-solid fa-house',
+        active: this.mode === ACTIONS.HOME,
+      },
+      ...(['bow', 'throw', 'object'].includes(this.mode)
+        ? [
+            {
+              id: this.mode,
+              label: { bow: 'Bow', throw: 'Throw weapon', object: 'Throw object' }[this.mode],
+              icon: 'fa-solid fa-arrow-up',
+              active: true,
+            },
+          ]
+        : []),
+      {
         id: ACTIONS.FIRE,
         label: 'Fire',
         icon: 'fa-solid fa-bullseye',
@@ -334,6 +376,10 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
   _readForm() {
     const form = this.element;
     if (!(form instanceof HTMLFormElement)) return;
+    if (ACTION_KINDS.includes(this.mode)) {
+      this.workflow?.read(form);
+      return;
+    }
     const data = Object.fromEntries(new FormData(form).entries());
     const fields = [
       'name',
@@ -419,6 +465,7 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   async _switchActor(actorUuid) {
+    if (this.workflow?.session) throw new Error('End the current sequence before changing actors.');
     const document = await fromUuid(actorUuid);
     const actor = document?.documentName === 'Actor' ? document : (document?.actor ?? null);
     if (!actor || (!actor.isOwner && !game.user.isGM))
@@ -614,12 +661,48 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   async _handleAction(action, target) {
     try {
+      if (this.workflow?.busy) return;
+      if (action.startsWith('wf-')) {
+        this.workflow.read(this.element);
+        if (action === 'wf-next' || action === 'wf-run') {
+          const pending = action === 'wf-run' ? this.workflow.run() : this.workflow.next();
+          this.render({ force: true });
+          try {
+            await pending;
+          } finally {
+            this.render({ force: true });
+          }
+        } else if (action === 'wf-resolve') {
+          await this.workflow.resolveEffect();
+          this.render({ force: true });
+        } else if (action === 'wf-stop') {
+          this.workflow.session = null;
+          this.workflow.status =
+            'Sequence ended. Resources already spent remain spent; check starting readiness before continuing.';
+          this.render({ force: true });
+        } else if (action === 'wf-damage') await this.workflow.damage();
+        else if (action === 'wf-recover') {
+          await this.workflow.recover();
+          this.render({ force: true });
+        } else if (action === 'wf-save' || action === 'wf-hotbar') {
+          const loadout = await upsertLoadout(this.actor, this.workflow.loadout());
+          this.workflow.id = loadout.id;
+          this.selectedLoadoutId = loadout.id;
+          await syncLoadoutMacros({ actor: this.actor, loadout });
+          if (action === 'wf-hotbar') await saveLoadoutToHotbar({ actor: this.actor, loadout });
+          else ui.notifications.info('Action loadout saved.');
+          this.render({ force: true });
+        }
+        return;
+      }
       if (action === 'toggle-actor-picker') {
         this.actorPickerOpen = !this.actorPickerOpen;
         return this.render({ force: true });
       }
       if (action === 'select-actor') return this._switchActor(target.dataset.actorUuid);
       if (action === 'use-selected') {
+        if (this.workflow?.session)
+          throw new Error('End the current sequence before changing actors.');
         const actor = selectedActor();
         if (!actor) throw new Error('Select exactly one token first.');
         this.actor = actor;
@@ -635,8 +718,20 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (action === 'create-reserve') return this._createTracker('reserve');
       if (action === 'setup-ammunition') return this._runSetupWizard();
       if (action === 'mode') {
+        if (this.workflow?.session) {
+          ui.notifications.warn('End the current sequence before changing actions.');
+          return;
+        }
         this._readForm();
         this.mode = target.dataset.mode;
+        if (this.mode === ACTIONS.FIRE && this.draft?.workflow) {
+          this.selectedLoadoutId = '';
+          this.draft = this._newDraft(
+            this.actor,
+            collectRangedAttacks(this.actor),
+            collectResourceTrackers(this.actor),
+          );
+        }
         await rememberView(this.actor, this.mode, this.selectedLoadoutId);
         return this.render({ force: true });
       }
@@ -698,6 +793,8 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
           ? getLoadouts(this.actor).find((item) => item.id === loadoutId)
           : await this._saveCurrent();
         if (!loadout) throw new Error('The saved loadout was not found.');
+        if (action === 'hotbar-reload' && loadout.workflow)
+          throw new Error('Use Reload to configure a reserve transfer for this weapon.');
         await saveLoadoutToHotbar({
           actor: this.actor,
           loadout,
@@ -716,7 +813,10 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
           collectRangedAttacks(this.actor),
           collectResourceTrackers(this.actor),
         );
-        this.mode = ACTIONS.FIRE;
+        this.mode = loadout.workflow?.kind ?? ACTIONS.FIRE;
+        this.workflow = loadout.workflow
+          ? new ActionWorkflow(this.actor, this.mode, loadout)
+          : null;
         await rememberView(this.actor, this.mode, loadout.id);
         return this.render({ force: true });
       }
@@ -827,6 +927,10 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
     } else {
       const loadout = getLoadouts(this.actor).find((item) => item.id === loadoutId);
       if (!loadout) return;
+      if (loadout.workflow) {
+        this.mode = loadout.workflow.kind;
+        this.workflow = new ActionWorkflow(this.actor, this.mode, loadout);
+      }
       this.selectedLoadoutId = loadout.id;
       this.draft = this._draftFromLoadout(loadout, attacks, trackers);
     }
@@ -886,6 +990,26 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
       });
     });
     this.element.querySelectorAll('select, input').forEach((element) => {
+      if (element.name.startsWith('wf.')) {
+        if (this.workflow?.busy) {
+          element.disabled = true;
+          return;
+        }
+        element.addEventListener('change', () => {
+          if (this.workflow?.busy) return;
+          this.workflow.read(this.element);
+          if (element.name === 'wf.method') {
+            const art = this.workflow.data.method === 'art';
+            this.workflow.data.methodPath =
+              this.workflow.skills.find(
+                (s) => s.name.toLowerCase() === (art ? 'throwing art' : 'throwing'),
+              )?.path ?? '';
+            if (!art) this.workflow.data.profile = 'ordinary';
+          }
+          this.render({ force: true });
+        });
+        return;
+      }
       if (['selectedLoadoutId', 'importFile'].includes(element.name)) return;
       element.addEventListener('change', () => {
         this._readForm();
@@ -921,5 +1045,22 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
         rememberAdvanced(details.open);
       });
     });
+    this.element
+      .querySelector('details.gga-ara-workflow-details')
+      ?.addEventListener('toggle', (event) => {
+        if (this.workflow) this.workflow.rulesOpen = event.currentTarget.open;
+      });
+  }
+
+  async close(options = {}) {
+    if (this.workflow?.busy) {
+      ui.notifications.warn('Wait for the current roll to finish.');
+      return this;
+    }
+    if (this.workflow?.session) {
+      ui.notifications.warn('End the current sequence before closing.');
+      return this;
+    }
+    return super.close(options);
   }
 }

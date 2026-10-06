@@ -4,6 +4,18 @@ export const helpConfig = {
   scope:
     '.gga-ara-help-dialog, .gga-ara, .gga-ara-quick-prompt, .gga-ara-receipt, [name^="gga-ammo-resource-assistant."], [data-key^="gga-ammo-resource-assistant."], [data-tool="gga-ammo-resource-assistant"], [data-control="gga-ammo-resource-assistant"]',
   actions: {
+    'wf-resolve':
+      'Record that critical consequences have been resolved at the table. Does not recover resources, heal injuries, or advance combat turns.',
+    'wf-run':
+      'Run the remaining preparation and attacks automatically. Stop on failed preparation or cancellation; a missed attack still spends ammunition. Different targets pause for retargeting.',
+    'wf-next':
+      'Perform only the next displayed step. Cancelled rolls do not spend projectiles. Set the target and GGA attack modifiers before each attack.',
+    'wf-stop':
+      'End this sequence. Completed rolls and resource costs remain recorded; review readiness before starting again.',
+    'wf-save': 'Save this action, its selected links, and its rule options on the actor.',
+    'wf-hotbar': 'Save this action and create a hotbar shortcut that opens its guided workflow.',
+    'wf-damage': 'Roll the last calculated object damage after resolving the target’s defence.',
+    'wf-recover': 'Return only thrown or dropped items actually recovered in usable condition.',
     'use-selected': 'Use the currently selected token as the actor for this assistant.',
     'toggle-actor-picker': 'Show or hide the list of actors you can use.',
     'select-actor': 'Switch the assistant to this actor.',
@@ -29,6 +41,19 @@ export const helpConfig = {
     'export-loadouts': 'Download the actor’s saved loadouts for reuse or backup.',
   },
   fields: {
+    'wf.start':
+      'Declare the current readiness. The assistant does not advance combat turns or ready equipment on the sheet.',
+    'wf.masterPath':
+      'Select Weapon Master only if its specialisation covers this weapon. Renamed traits can be linked manually.',
+    'wf.drawMod':
+      'Modifiers for Fast-Draw only. Attack modifiers in the GGA bucket are kept aside during preparation.',
+    'wf.readyMod': 'Extra modifiers for the quick bow-readying roll only.',
+    'wf.attackMod':
+      'An additional modifier for each attack. Do not repeat modifiers already in the GGA bucket.',
+    'wf.applyAcc':
+      'Add Heroic Accuracy here only if GGA or another module has not already included it.',
+    'wf.bl':
+      'Actual Basic Lift in pounds. Throwing skill bonuses change final distance ST, not this value (B355-356).',
     actorSearch: 'Filter the actor picker by name.',
     selectedLoadoutId: 'Load a saved shooting and reload configuration for this actor.',
     attackPath: 'Choose the GGA ranged attack whose skill and rate of fire will be used.',

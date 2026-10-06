@@ -59,7 +59,7 @@
       {{/each}}
     </nav>
 
-    {{#unless isLoadouts}}
+    {{#if showLoadoutStrip}}
       <section class="gga-ara-loadout-strip">
         <label for="gga-ara-loadout">Saved loadout</label>
         <select id="gga-ara-loadout" name="selectedLoadoutId">
@@ -70,7 +70,23 @@
         </select>
         <button type="button" class="plain" data-action="new-loadout" data-tooltip="New loadout"><i class="fa-solid fa-plus"></i></button>
       </section>
-    {{/unless}}
+    {{/if}}
+
+    {{#if isHome}}
+      <main class="gga-ara-task gga-ara-home">
+        <h2>What would you like to do?</h2>
+        <p>Choose an action. Your saved loadouts are available under Loadouts.</p>
+        <div class="gga-ara-action-grid">
+          <button type="button" data-action="mode" data-mode="fire"><i class="fa-solid fa-bullseye"></i><strong>Fire</strong><span>Firearms and other readied ranged attacks</span></button>
+          <button type="button" data-action="mode" data-mode="bow"><i class="fa-solid fa-feather"></i><strong>Bow sequence</strong><span>Fast-Draw, quick-shooting, and two arrows</span></button>
+          <button type="button" data-action="mode" data-mode="throw"><i class="fa-solid fa-hand"></i><strong>Throw weapon</strong><span>Single or cinematic multiple throws</span></button>
+          <button type="button" data-action="mode" data-mode="object"><i class="fa-solid fa-cube"></i><strong>Throw object</strong><span>Weight, range, damage, and attack</span></button>
+          <button type="button" data-action="mode" data-mode="reload"><i class="fa-solid fa-arrows-rotate"></i><strong>Reload</strong><span>Replenish ammunition from a reserve</span></button>
+          <button type="button" data-action="mode" data-mode="adjust"><i class="fa-solid fa-sliders"></i><strong>Adjust resources</strong><span>Spend, add, or correct a tracker</span></button>
+        </div>
+      </main>
+    {{/if}}
+    {{#if isWorkflow}}<main class="gga-ara-task gga-ara-workflow">{{{workflowHtml}}}</main>{{/if}}
 
     {{#if isFire}}
       <main class="gga-ara-task">
@@ -258,11 +274,11 @@
             {{#each loadouts}}
               <article class="gga-ara-loadout-row" draggable="true" data-hotbar-drag='{{draggableData}}'>
                 <div class="gga-ara-drag"><i class="fa-solid fa-grip-vertical"></i></div>
-                <div><strong>{{name}}</strong><small>Drag to the hotbar for instant shooting. Shift-click its macro to edit.</small></div>
+                <div><strong>{{name}}</strong><small>{{#if workflow}}Drag to the hotbar to open this action sequence.{{else}}Drag to the hotbar for instant shooting. Shift-click its macro to edit.{{/if}}</small></div>
                 <div class="gga-ara-row-actions">
                   <button type="button" class="plain" data-action="load-loadout" data-loadout-id="{{id}}" data-tooltip="Open"><i class="fa-solid fa-pen"></i></button>
                   <button type="button" class="plain" data-action="hotbar-fire" data-loadout-id="{{id}}" data-tooltip="Add fire to hotbar"><i class="fa-solid fa-bullseye"></i></button>
-                  <button type="button" class="plain" data-action="hotbar-reload" data-loadout-id="{{id}}" data-tooltip="Add reload to hotbar"><i class="fa-solid fa-arrows-rotate"></i></button>
+                  {{#unless workflow}}<button type="button" class="plain" data-action="hotbar-reload" data-loadout-id="{{id}}" data-tooltip="Add reload to hotbar"><i class="fa-solid fa-arrows-rotate"></i></button>{{/unless}}
                   <button type="button" class="plain" data-action="duplicate-loadout" data-loadout-id="{{id}}" data-tooltip="Duplicate"><i class="fa-solid fa-copy"></i></button>
                   <button type="button" class="plain danger" data-action="delete-loadout" data-loadout-id="{{id}}" data-tooltip="Delete"><i class="fa-solid fa-trash"></i></button>
                 </div>

@@ -4,6 +4,8 @@
   "USER-GUIDE.md",
   "module.json",
   "scripts/application.mjs",
+  "scripts/action-rules.mjs",
+  "scripts/action-workflow.mjs",
   "scripts/constants.mjs",
   "scripts/core.mjs",
   "scripts/gga-adapter.mjs",

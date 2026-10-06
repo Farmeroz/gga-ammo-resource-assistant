@@ -162,11 +162,64 @@ export async function actorFromUuid(actorUuid) {
   return null;
 }
 
-function lastRoll(actor) {
+export function lastRoll(actor) {
   const rolls = globalThis.GURPS?.lastTargetedRolls;
   if (!rolls) return null;
   const tokenDocument = tokenDocumentForActor(actor);
   return rolls[tokenDocument?.id] ?? rolls[actor.id] ?? null;
+}
+
+// Prerequisite checks have their own modifiers; do not consume the attack bucket.
+export async function withActionModifiers(modifiers, callback, { preparation = false } = {}) {
+  const bucket = globalThis.GURPS?.ModifierBucket;
+  if (!bucket?.clear || !bucket?.addModifier)
+    throw new Error('GGA modifier controls are unavailable.');
+  const saved = structuredClone(bucket.modifierStack?.modifierList ?? []);
+  if (preparation) await bucket.clear();
+  let result;
+  try {
+    for (const item of modifiers) if (item.value) await bucket.addModifier(item.value, item.label);
+    result = await callback();
+    return result;
+  } finally {
+    if (preparation || !result?.rolled) {
+      await bucket.clear();
+      for (const item of saved) await bucket.addModifier(item.modint, item.desc);
+    }
+  }
+}
+
+export async function rollActionCheck(actor, otf, modifiers = [], { preparation = true } = {}) {
+  if (!actor?.isOwner && !game.user?.isGM) throw new Error('You do not own this actor.');
+  if (!globalThis.GURPS?.executeOTF) throw new Error('GGA roll execution is unavailable.');
+  return withActionModifiers(
+    modifiers,
+    async () => {
+      const before = lastRoll(actor);
+      const previousActor = GURPS.LastActor;
+      const previousToken = GURPS.LastTokenDocument;
+      try {
+        GURPS.SetLastActor?.(actor, tokenDocumentForActor(actor));
+        await GURPS.executeOTF(
+          otf,
+          false,
+          { shiftKey: false, ctrlKey: false, altKey: false, metaKey: false, data: {} },
+          actor,
+        );
+        const after = lastRoll(actor);
+        const rolled = Boolean(after && after !== before && typeof after.failure === 'boolean');
+        return {
+          rolled,
+          success: rolled && !after.isCritFailure && (!after.failure || after.isCritSuccess),
+          critical: rolled && Boolean(after.isCritFailure),
+          criticalSuccess: rolled && Boolean(after.isCritSuccess),
+        };
+      } finally {
+        GURPS.SetLastActor?.(previousActor, previousToken);
+      }
+    },
+    { preparation },
+  );
 }
 
 function tokenDocumentForActor(actor) {
@@ -254,6 +307,7 @@ class ShotPromptBridge {
         afterRoll !== beforeRoll &&
         normalise(afterRoll.thing).includes(normalise(transaction.attackName)),
       );
+      transaction.critical = transaction.rollSeen && Boolean(afterRoll.isCritFailure);
       return transaction;
     } finally {
       this.active = null;
@@ -306,6 +360,7 @@ export async function rollRangedAttack(actor, attack, shots) {
     promptSeen: transaction.promptSeen,
     promptExpected: transaction.expectsPrompt,
     visibility: transaction.messageVisibility,
+    critical: transaction.critical,
   };
 }
 
