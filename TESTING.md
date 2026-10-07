@@ -37,9 +37,11 @@ Use the following scenarios for future regression checks:
 
 The build checks module/package versions, install URLs, declared assets, local imports, the allowed archive file list, and every archived file's bytes. The release ZIP contains only runtime files, the licence, and user documentation.
 
-## Malfunction prerelease live testing
+## Malfunction live acceptance and regression checks
 
-Use the version-specific beta manifest. Stable v1.1.2 is unchanged.
+On 7 October 2026, Phil confirmed live malfunction triggering by testing a deliberately low Malf. value, then authorised stable publication. Version 1.2.0 retains the tested runtime from v1.2.0-beta.2. All 110 automated tests pass, including the 91 existing tests; formatting, syntax, and package verification also pass.
+
+Use the following scenarios for future regression checks:
 
 - Confirm old loadouts still fire normally with malfunctions off. Save/reopen settings and use the hotbar.
 - Use controlled GGA attack dice to test totals below, equal to, and above Malf.; a critical miss below Malf. must not malfunction.
@@ -52,4 +54,4 @@ Use the version-specific beta manifest. Stable v1.1.2 is unchanged.
 - Undo ammunition/condition together, then test that a later adjustment or repair prevents stale undo.
 - Keep any other automatic critical-table resolver disabled for malfunction-assisted attacks; GGA's original critical label is superseded by the malfunction receipt.
 
-Automated tests cover threshold/table boundaries, special reliability, weapon categories, actual dice capture, partial expenditure, state persistence, visibility, guarded undo, clearing/repair transitions, and bow/throw integration. Live acceptance of this feature is pending.
+Automated tests cover threshold/table boundaries, special reliability, weapon categories, actual dice capture, partial expenditure, state persistence, visibility, guarded undo, clearing/repair transitions, and bow/throw integration.
