@@ -556,20 +556,31 @@ test('failed ammunition update retains a local condition and cannot silently rep
 
 test('secondary dice failure blocks a repeat and preserves ammunition for manual review', async () => {
   const { actor, loadout } = fixture();
-  actor.id = 'dice-failed'; actor.uuid = 'Actor.dice-failed';
+  actor.id = 'dice-failed';
+  actor.uuid = 'Actor.dice-failed';
   enableMalf(loadout);
-  GURPS.executeOTF = async () => { GURPS.lastTargetedRolls[actor.id] = { thing: 'Pistol', rtotal: 18 }; };
-  globalThis.Roll = class { async evaluate() { throw new Error('Dice unavailable'); } };
-  const old = console.error; console.error = () => {};
+  GURPS.executeOTF = async () => {
+    GURPS.lastTargetedRolls[actor.id] = { thing: 'Pistol', rtotal: 18 };
+  };
+  globalThis.Roll = class {
+    async evaluate() {
+      throw new Error('Dice unavailable');
+    }
+  };
+  const old = console.error;
+  console.error = () => {};
   try {
     assert.equal((await executeFire({ actor, loadout })).ok, false);
     assert.equal(weaponCondition(actor, loadout.attack, loadout.malfunction).kind, 'review');
     assert.equal(actor.system.additionalresources.tracker['0000'].value, 6);
-  } finally { console.error = old; }
+  } finally {
+    console.error = old;
+  }
 });
 test('reliability confirmation passes without leaving a blocking condition', async () => {
   const { actor, loadout } = fixture();
-  enableMalf(loadout, 'firearm', '17R'); malfRoll(18, 16, true);
+  enableMalf(loadout, 'firearm', '17R');
+  malfRoll(18, 16, true);
   const result = await executeFire({ actor, loadout });
   assert.equal(result.spent, 1);
   assert.equal(result.malfunction, null);
@@ -578,16 +589,30 @@ test('reliability confirmation passes without leaving a blocking condition', asy
 });
 test('duplicate Fire calls stay locked through asynchronous malfunction resolution', async () => {
   const { actor, loadout } = fixture();
-  enableMalf(loadout); malfRoll(18);
+  enableMalf(loadout);
+  malfRoll(18);
   let release;
-  globalThis.Roll = class { async evaluate() { await new Promise(resolve => { release = resolve; }); this.total = 10; return this; } };
+  globalThis.Roll = class {
+    async evaluate() {
+      await new Promise((resolve) => {
+        release = resolve;
+      });
+      this.total = 10;
+      return this;
+    }
+  };
   const first = executeFire({ actor, loadout });
   // Let the first call reach its secondary dice await.
   for (let n = 0; n < 20 && !release; n++) await Promise.resolve();
   assert.equal(typeof release, 'function');
-  const old = console.error; console.error = () => {};
-  try { assert.equal((await executeFire({ actor, loadout })).ok, false); }
-  finally { console.error = old; }
-  release(); await first;
+  const old = console.error;
+  console.error = () => {};
+  try {
+    assert.equal((await executeFire({ actor, loadout })).ok, false);
+  } finally {
+    console.error = old;
+  }
+  release();
+  await first;
   assert.equal(actor.system.additionalresources.tracker['0000'].value, 5);
 });

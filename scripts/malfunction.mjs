@@ -82,8 +82,10 @@ export async function resolveMalfunction(actor, attack, input, attackRoll) {
   const path = conditionPath(attack, c);
   pending.set(memoryKey(actor, path), {
     id: foundry.utils.randomID?.() || crypto.randomUUID(),
-    kind: 'review', blocking: true,
-    detail: 'An attack occurred, but malfunction resolution has not finished. Check the original roll and correct ammunition before recording resolution.',
+    kind: 'review',
+    blocking: true,
+    detail:
+      'An attack occurred, but malfunction resolution has not finished. Check the original roll and correct ammunition before recording resolution.',
   });
   if (attackRoll.externalMalfunction) triggered = null;
   if (triggered === 'confirm') triggered = triggers(c, attackRoll.total, await dice('3d6', rolls));

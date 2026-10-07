@@ -310,7 +310,10 @@ class ShotPromptBridge {
         normalise(afterRoll.thing).includes(normalise(transaction.attackName)),
       );
       transaction.critical = transaction.rollSeen && Boolean(afterRoll.isCritFailure);
-      transaction.total = transaction.rollSeen && Number.isInteger(afterRoll.rtotal) ? afterRoll.rtotal : transaction.chatTotal;
+      transaction.total =
+        transaction.rollSeen && Number.isInteger(afterRoll.rtotal)
+          ? afterRoll.rtotal
+          : transaction.chatTotal;
       transaction.externalMalfunction =
         transaction.rollSeen && Boolean(afterRoll.malfunction || afterRoll.isMalfunction);
       return transaction;
