@@ -551,6 +551,7 @@ test('ordinary thrown weapons ignore Low-Tech malfunctions and retain ordinary e
   GURPS.executeOTF = async function (...args) {
     const result = await execute.apply(this, args);
     this.lastTargetedRolls[w.actor.id].rtotal = 17;
+    this.lastTargetedRolls[w.actor.id].thing = 'Knife';
     return result;
   };
   await w.run();
