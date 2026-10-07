@@ -140,16 +140,25 @@ export async function reportMalfunction(actor, result, visibility, inherited, ch
   if (!result) return;
   await postReceiptSafely({
     actor,
-    title: result.state?.kind === 'review' ? 'Attack needs review' : result.triggered ? 'Malfunction' : 'Reliability check',
+    title:
+      result.state?.kind === 'review'
+        ? 'Attack needs review'
+        : result.triggered
+          ? 'Malfunction'
+          : 'Reliability check',
     summary: result.detail,
     details: result.triggered
       ? [
           result.state.kind === 'review'
             ? 'Determine the original attack outcome before resolving critical effects or ammunition.'
             : 'Resolve only the malfunction, not an additional critical-miss result (GURPS 4e FAQ 3.4.2.4).',
-          Number.isInteger(result.state.attackTotal) ? `Attack dice: ${result.state.attackTotal}; effective Malf. ${result.state.malf}.` : '',
+          Number.isInteger(result.state.attackTotal)
+            ? `Attack dice: ${result.state.attackTotal}; effective Malf. ${result.state.malf}.`
+            : '',
           Number.isInteger(result.state.table) ? `Malfunction table: ${result.state.table}.` : '',
-          ...changes.filter(change => change.path.startsWith('system.')).map(change => `Ammunition: ${change.before} → ${change.after}.`),
+          ...changes
+            .filter((change) => change.path.startsWith('system.'))
+            .map((change) => `Ammunition: ${change.before} → ${change.after}.`),
           'Ammunition tracks usable rounds. Use Adjust for ejected rounds, charges, or weapon-specific exceptions.',
         ]
       : [],

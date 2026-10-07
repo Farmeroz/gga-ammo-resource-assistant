@@ -627,7 +627,9 @@ test('unknown attack totals do not claim that an actual critical miss has been s
 test('external malfunction below the configured threshold defers to external resolution', async () => {
   const { actor, loadout } = fixture();
   enableMalf(loadout);
-  GURPS.executeOTF = async () => { GURPS.lastTargetedRolls[actor.id] = { thing: 'Pistol', rtotal: 14, isMalfunction: true }; };
+  GURPS.executeOTF = async () => {
+    GURPS.lastTargetedRolls[actor.id] = { thing: 'Pistol', rtotal: 14, isMalfunction: true };
+  };
   const result = await executeFire({ actor, loadout });
   assert.equal(result.spent, 0);
   assert.equal(result.malfunction.kind, 'review');
