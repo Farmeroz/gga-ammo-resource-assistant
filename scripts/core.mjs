@@ -1,3 +1,4 @@
+import { validateMalf } from './malfunction-rules.mjs';
 import { DEFAULT_LOADOUT, LOADOUT_SCHEMA_VERSION, VISIBILITY } from './constants.mjs';
 
 export function normalise(value) {
@@ -207,6 +208,11 @@ export function makeLoadout(input = {}, randomId = () => crypto.randomUUID()) {
 
 export function validateLoadout(loadout, { maximumRof = Infinity } = {}) {
   const errors = [];
+  try {
+    validateMalf(loadout?.malfunction ?? loadout?.workflow?.malfunction);
+  } catch (error) {
+    errors.push(error.message);
+  }
   if (!String(loadout?.name ?? '').trim()) errors.push('Enter a loadout name.');
   if (loadout?.workflow) {
     if (!['bow', 'throw', 'object'].includes(loadout.workflow.kind))
@@ -231,9 +237,11 @@ export function canUndo(changes, getCurrentValue) {
   return (
     Array.isArray(changes) &&
     changes.length > 0 &&
-    changes.every(
-      (change) =>
-        finiteNumber(getCurrentValue(change.path), NaN) === finiteNumber(change.after, NaN),
+    changes.every((change) =>
+      change.kind === 'weaponCondition'
+        ? JSON.stringify(getCurrentValue(change.path) ?? null) ===
+          JSON.stringify(change.after ?? null)
+        : finiteNumber(getCurrentValue(change.path), NaN) === finiteNumber(change.after, NaN),
     )
   );
 }

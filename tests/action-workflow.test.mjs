@@ -518,3 +518,43 @@ test('critical prerequisite success still performs a separate attack roll', asyn
   assert.equal(rolls.length, 3);
   assert.equal(get(w.actor, 'system.additionalresources.tracker.ammo.value'), 9);
 });
+
+test('cheap bow malfunction stops a two-arrow sequence, retains condition, and supersedes critical effects', async () => {
+  const w = workflow();
+  w.data.start = 'ready';
+  w.data.twoArrows = true;
+  w.data.malfunction = { enabled: true, category: 'bow', value: '16' };
+  const execute = GURPS.executeOTF;
+  GURPS.executeOTF = async function (...args) {
+    const result = await execute.apply(this, args);
+    this.lastTargetedRolls[w.actor.id].rtotal = 18;
+    this.lastTargetedRolls[w.actor.id].isCritFailure = true;
+    return result;
+  };
+  await w.run();
+  assert.equal(rolls.length, 1);
+  assert.equal(w.session, null);
+  assert.equal(w.pendingEffect(), null);
+  assert.equal(get(w.actor, 'system.additionalresources.tracker.ammo.value'), 10);
+  assert.match(w.status, /broken/);
+  assert.equal(w.compute().allowed, false);
+  const reopened = new ActionWorkflow(w.actor, 'bow');
+  reopened.data.attackPath = 'ranged.bow';
+  assert.equal(reopened.compute().allowed, false);
+  assert.ok(parseHTML(reopened.render()).document.querySelector('[data-action="malf-maintain"]'));
+});
+test('ordinary thrown weapons ignore Low-Tech malfunctions and retain ordinary expenditure', async () => {
+  const w = workflow('throw');
+  w.data.start = 'ready';
+  w.data.malfunction = { enabled: true, category: 'thrown', value: '3' };
+  const execute = GURPS.executeOTF;
+  GURPS.executeOTF = async function (...args) {
+    const result = await execute.apply(this, args);
+    this.lastTargetedRolls[w.actor.id].rtotal = 17;
+    this.lastTargetedRolls[w.actor.id].thing = 'Knife';
+    return result;
+  };
+  await w.run();
+  assert.equal(get(w.actor, 'system.additionalresources.tracker.ammo.value'), 9);
+  assert.equal(w.session, null);
+});

@@ -276,6 +276,8 @@ class ShotPromptBridge {
     const content = normalise(message?.content ?? message?._source?.content);
     if (!content.includes(normalise(transaction.attackName))) return;
     transaction.messageSeen = true;
+    const total = rolls.length === 1 ? rolls[0]?.total : null;
+    if (Number.isInteger(total) && total >= 3 && total <= 18) transaction.chatTotal = total;
     transaction.messageVisibility = {
       whisper: Array.from(message.whisper ?? message?._source?.whisper ?? []),
       blind: Boolean(message.blind ?? message?._source?.blind),
@@ -308,6 +310,12 @@ class ShotPromptBridge {
         normalise(afterRoll.thing).includes(normalise(transaction.attackName)),
       );
       transaction.critical = transaction.rollSeen && Boolean(afterRoll.isCritFailure);
+      transaction.total =
+        transaction.rollSeen && Number.isInteger(afterRoll.rtotal)
+          ? afterRoll.rtotal
+          : transaction.chatTotal;
+      transaction.externalMalfunction =
+        transaction.rollSeen && Boolean(afterRoll.malfunction || afterRoll.isMalfunction);
       return transaction;
     } finally {
       this.active = null;
@@ -361,6 +369,8 @@ export async function rollRangedAttack(actor, attack, shots) {
     promptExpected: transaction.expectsPrompt,
     visibility: transaction.messageVisibility,
     critical: transaction.critical,
+    total: transaction.total,
+    externalMalfunction: transaction.externalMalfunction,
   };
 }
 

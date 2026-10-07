@@ -6,6 +6,12 @@ Choose an action first: **Fire**, **Bow sequence**, **Throw a weapon**, **Throw 
 
 Bow sequences support Fast-Draw, quick-shooting, Heroic Archer, applicable Weapon Master, and two-arrow attacks. Weapon throws support multiple throws and Heroic Thrower. Object throws calculate range, handling, and damage using DX, Throwing, or Throwing Art. Saved action shortcuts reopen the guided workflow.
 
+## What's new in 1.2.0
+
+Optional GURPS Fourth Edition malfunction settings now accompany Fire and bow/throw loadouts. Actual attack dice determine malfunctions; weapon condition persists, and ammunition follows the outcome. Use Weapon condition to record completed clearing and repairs. Existing loadouts default off.
+
+Use the stable manifest below to install or update. Save any configuration changes as a loadout to retain them. Phil confirmed malfunction triggering in a live Foundry world using a low Malf. value and accepted publication on 7 October 2026. All 110 automated tests pass.
+
 ## What's new in 1.1.2
 
 - **Run sequence** handles preparation and attacks in one click. **One step** remains available, and different-target sequences pause for retargeting.

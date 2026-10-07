@@ -109,7 +109,7 @@ The Fire view shows only the choices needed for an attack:
 4. Review the predicted tracker change.
 5. Select **Roll & spend**.
 
-The normal GGA attack is then rolled. Ammunition is deducted only after the attack roll actually occurs. A failed attack still expends ammunition; a cancelled attack or an attack that cannot be launched does not.
+The normal GGA attack is then rolled. Ammunition is deducted only after the attack roll actually occurs. An ordinary failed attack still expends ammunition; a cancelled attack or an attack that cannot be launched does not. With optional malfunction support enabled, expenditure follows the malfunction outcome instead.
 
 For weapons with RoF greater than 1, the assistant passes the chosen number of shots into GGA so GGA can apply its normal Rapid Fire calculation.
 
@@ -192,7 +192,7 @@ The button method uses the first empty slot on the displayed hotbar page, then t
 
 ### Fixed burst
 
-Choose **Fire this fixed burst** in the loadout options for true one-click shooting. Clicking the hotbar macro immediately validates the actor and current ammunition, launches the normal GGA attack, and deducts the saved number of shots.
+Choose **Fire this fixed burst** in the loadout options for true one-click shooting. Clicking the hotbar macro immediately validates the actor and current ammunition, launches the normal GGA attack, and deducts the saved number of shots unless an enabled malfunction changes the expenditure.
 
 Normal GGA prompts, such as an optional roll-confirmation window, continue to appear when enabled in GGA.
 
@@ -212,7 +212,7 @@ Resource changes can post a compact chat receipt showing the before and after va
 
 Select **Undo** on a receipt to reverse its resource change. Undo works only while every affected tracker still has the value produced by that receipt. If something else has changed the tracker since then, the module refuses to overwrite the newer value.
 
-Receipts can be disabled in Module Settings.
+Ordinary resource receipts can be disabled in Module Settings. Malfunction and weapon-condition receipts remain available.
 
 ## GURPS 4e rules boundary
 
@@ -220,7 +220,7 @@ Under GURPS Fourth Edition, a weapon with RoF 2 or more allows the attacker to c
 
 The Shots statistic, including its parenthetical reload-time notation, is defined in _GURPS Basic Set: Characters_, p. B270. Combat use of RoF, Shots, and reloading is covered in _GURPS Basic Set: Campaigns_, p. B373; Ready manoeuvres for reloading are covered on p. B382.
 
-The assistant tracks the chosen ammunition and displays reload information. It leaves combat timing, unusual reloads, stoppages, ammunition changes, and other situational rulings to the players and GM.
+The assistant tracks the chosen ammunition and displays reload information. Optional malfunction support records stoppages and other weapon conditions. Combat timing, completed clearing/repair rolls, unusual reloads, and situational ammunition corrections remain with the players and GM.
 
 ## Troubleshooting
 
@@ -255,3 +255,33 @@ The resource has changed since the receipt was created. Adjust it manually if co
 ### A resource changed but no receipt appeared
 
 If Foundry cannot create the chat message, the resource change still succeeds and the module warns that receipt-based Undo is unavailable for that change. Use Adjust if a manual correction is needed.
+
+## Optional malfunctions (1.2.0)
+
+Choose **Malfunction settings** in Fire, Bow, or Throw weapon. Enable the option, choose the weapon category, and enter its effective Malf. Save the loadout afterwards. Old loadouts default off. Changing category does not replace your entered value. Object throws have no malfunction option.
+
+References: GURPS Fourth Edition **Basic Set: Characters**, pp. B279–280; **Basic Set: Campaigns**, p. B407; **Low-Tech**, p. 75; **High-Tech**, p. 79; [official FAQ 3.4.2.4](https://www.sjgames.com/gurps/faq/FAQ4-3.html). Low-Tech's optional cheap-weapon rules do not apply to ordinary thrown weapons.
+
+Use the effective value after quality, maintenance, and weapon-specific modifiers. Numeric 18 differs from 19+ or Ver. The latter cannot trigger on 3d. **17R** is this module's explicit notation for the High-Tech p. 79 second-roll reliability confirmation at Malf.17; it is not an alternative spelling of Ver. The module does not infer reliability or weapon type from a name.
+
+B407 explosion eligibility is a separate explicit selection: TL3 firearms or TL4 grenades, breechloaders, and repeating firearms. Choose no explosion for TL5+ under this rule. Warhead damage replaces the listed explosion damage only for an eligible explosive-warhead weapon. Resolve injury, scatter, delayed detonation, and any special weapon description at the table.
+
+The malfunction result supersedes a critical miss. GGA v0.18.23's attack routine and chat template were inspected: it supplies the raw `rtotal` and critical status but does not implement malfunction detection or resolution. The assistant does not roll a second critical-miss table. GGA's original attack card still shows its original attack classification; the malfunction receipt explains which result controls. Do not resolve that card's critical classification again. Third-party automatic critical-table modules are not intercepted. Disable overlapping automatic resolution for these attacks. If a future GGA roll explicitly reports a malfunction, the assistant records a review condition instead of rolling another outcome.
+
+A stoppage fires one shot; use that shot's normal attack calculation, without the selected burst's extra-shot bonus or extra hits. The assistant does not rewrite GGA's hit calculation. Beam stoppages become mechanical trouble. Grenades can become duds or delayed detonations; revolver misfires permit the next shot normally. Cheap mechanical missile weapons jam; cheap bows and slings break.
+
+### Ammunition and undo
+
+Ammunition trackers represent **usable rounds or devices**. A stoppage spends one shot's resource cost, a misfire removes one unusable round, and an expended single-use device removes one device. Mechanical failures and Low-Tech jams/breakages default to zero spent; no entire burst is deducted. Explosion expenditure defaults to one round/device. These are bookkeeping conventions where the rule does not prescribe every ejected or damaged round. Use **Adjust** for discarded rounds, retained beam charges, additional damaged ammunition, and weapon-specific exceptions. Flat resource cost applies only when at least one unit is spent.
+
+Condition and ammunition update together. The malfunction receipt appears even when ordinary resource receipts are disabled; secondary dice follow its visibility. Undo restores both together only if neither has changed. Clearing/repair receipts have their own guarded undo. Undo never removes dice, injury, or elapsed manoeuvres.
+
+Condition follows the attack UUID, or name and usage when no UUID exists. Set the same **Shared weapon identifier** on all loadouts/usages of the same physical weapon; use distinct identifiers for separate weapons. Disabling detection does not clear an existing condition. Changing identifiers selects a different weapon record; it is not a repair.
+
+### Clearing and repairs
+
+**Weapon condition** records results already resolved at the table. It does not roll skills or advance time. Follow the displayed procedure, select the completed action and result, and confirm the required time, hands, and skills were handled. Misfires require diagnosis before clearing; mechanical trouble requires diagnosis before a repair attempt. Failure preserves the problem; critical clearing failure escalates to mechanical trouble, and critical mechanical repair failure breaks the weapon. GM-resolved consequences/replacement is an explicit manual resolution option.
+
+Low-Tech gives the jam/breakage outcome without a universal clearing procedure; use the appropriate weapon rule or GM ruling. Recovering arrows or reloading does not repair the weapon. Single-use duds and delayed grenades do not disable the remaining supply; their latest result remains visible until acknowledged.
+
+If the attack total cannot be captured, the module leaves ammunition unchanged and records a blocking review condition. Review the original roll, correct the tracker, and record the resolution. If saving fails after a roll, the current client retains a temporary blocking condition to prevent an accidental repeat; check the actor before reloading the client. Cross-client concurrent edits are not a distributed transaction; one person should operate a weapon at a time.

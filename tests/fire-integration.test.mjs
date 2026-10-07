@@ -394,3 +394,243 @@ test('failed Reload and Adjust receipts also preserve successful updates', async
     console.error = originalConsoleError;
   }
 });
+
+const { conditionPath, weaponCondition, maintainWeapon } =
+  await import('../scripts/malfunction.mjs');
+const { canUndo } = await import('../scripts/core.mjs');
+function enableMalf(loadout, category = 'firearm', value = '17') {
+  loadout.malfunction = { enabled: true, category, value };
+}
+function malfRoll(total, table = 10, critical = false) {
+  globalThis.Roll = class {
+    constructor(formula) {
+      this.formula = formula;
+    }
+    async evaluate() {
+      this.total = table;
+      return this;
+    }
+  };
+  GURPS.executeOTF = async () => {
+    if (shotPromptBridge.active) shotPromptBridge.active.promptSeen = true;
+    shotPromptBridge.observeChatMessage({
+      speaker: { actor: 'actor-1' },
+      rolls: [{ total }],
+      content: 'Pistol attack',
+      whisper: ['gm-1'],
+      blind: true,
+    });
+    GURPS.lastTargetedRolls['actor-1'] = {
+      thing: 'Pistol',
+      rtotal: total,
+      isCritFailure: critical,
+    };
+    return false;
+  };
+}
+test('stoppage spends one shot from a selected burst and blocks subsequent attacks', async () => {
+  const { actor, loadout } = fixture({ rof: '3', ammunition: 10 });
+  enableMalf(loadout);
+  malfRoll(17);
+  const result = await executeFire({ actor, loadout, shots: 3 });
+  assert.equal(result.spent, 1);
+  assert.equal(result.after, 9);
+  assert.equal(result.malfunction.kind, 'stoppage');
+  assert.equal(actor.updates.length, 1);
+  assert.equal(Object.keys(actor.updates[0]).length, 2);
+  const message = createdMessages.at(-1);
+  assert.equal(message.blind, true);
+  assert.deepEqual(message.whisper, ['gm-1']);
+  assert.match(message.content, /not an additional critical-miss/);
+  assert.equal(message.rolls.length, 1);
+  const receipt = message.flags['gga-ammo-resource-assistant'].receipt;
+  assert.equal(
+    canUndo(receipt.changes, (p) => getProperty(actor, p)),
+    true,
+  );
+  const statePath = conditionPath(loadout.attack, loadout.malfunction);
+  setProperty(actor, statePath, { ...getProperty(actor, statePath), id: 'newer' });
+  assert.equal(
+    canUndo(receipt.changes, (p) => getProperty(actor, p)),
+    false,
+  );
+  const old = console.error;
+  console.error = () => {};
+  try {
+    loadout.malfunction.enabled = false;
+    assert.equal((await executeFire({ actor, loadout })).ok, false);
+    assert.equal(actor.system.additionalresources.tracker['0000'].value, 9);
+  } finally {
+    console.error = old;
+  }
+});
+test('mechanical failure expends no rounds or flat resource cost', async () => {
+  const { actor, loadout } = fixture({ ammunition: 10 });
+  enableMalf(loadout);
+  loadout.flatCost = 2;
+  loadout.unitsPerShot = 2;
+  malfRoll(18, 3, true);
+  const result = await executeFire({ actor, loadout });
+  assert.equal(result.spent, 0);
+  assert.equal(result.after, 10);
+  assert.equal(result.malfunction.kind, 'mechanical');
+});
+test('critical miss below Malf is not a malfunction', async () => {
+  const { actor, loadout } = fixture();
+  enableMalf(loadout);
+  malfRoll(15, 3, true);
+  const result = await executeFire({ actor, loadout });
+  assert.equal(result.spent, 1);
+  assert.equal(result.malfunction, null);
+  assert.equal(weaponCondition(actor, loadout.attack, loadout.malfunction), null);
+});
+test('missing raw total defers expenditure and records review instead of guessing', async () => {
+  const { actor, loadout } = fixture();
+  enableMalf(loadout);
+  const result = await executeFire({ actor, loadout });
+  assert.equal(result.spent, 0);
+  assert.equal(result.malfunction.kind, 'review');
+});
+test('native malfunction indicator does not cause a second outcome roll', async () => {
+  const { actor, loadout } = fixture();
+  enableMalf(loadout);
+  GURPS.executeOTF = async () => {
+    GURPS.lastTargetedRolls['actor-1'] = { thing: 'Pistol', rtotal: 18, malfunction: true };
+  };
+  globalThis.Roll = class {
+    constructor() {
+      throw new Error('Duplicate table roll');
+    }
+  };
+  const result = await executeFire({ actor, loadout });
+  assert.equal(result.malfunction.kind, 'review');
+});
+test('recorded clearing changes condition without restoring ammunition and can be undone', async () => {
+  const { actor, loadout } = fixture();
+  enableMalf(loadout);
+  malfRoll(18);
+  await executeFire({ actor, loadout });
+  foundry.applications.api.DialogV2.input = async () => ({
+    completed: true,
+    action: 'clear',
+    result: 'success',
+  });
+  try {
+    await maintainWeapon(actor, loadout.attack, loadout.malfunction);
+  } finally {
+    foundry.applications.api.DialogV2.input = async () => null;
+  }
+  assert.equal(weaponCondition(actor, loadout.attack, loadout.malfunction), null);
+  assert.equal(actor.system.additionalresources.tracker['0000'].value, 5);
+  assert.equal(
+    createdMessages.at(-1).flags['gga-ammo-resource-assistant'].receipt.changes.length,
+    1,
+  );
+});
+test('failed ammunition update retains a local condition and cannot silently repeat the attack', async () => {
+  const { actor, loadout } = fixture();
+  actor.id = 'failed-actor';
+  actor.uuid = 'Actor.failed-actor';
+  enableMalf(loadout);
+  GURPS.executeOTF = async () => {
+    GURPS.lastTargetedRolls[actor.id] = { thing: 'Pistol', rtotal: 18 };
+  };
+  globalThis.Roll = class {
+    async evaluate() {
+      this.total = 3;
+      return this;
+    }
+  };
+  actor.update = async () => {
+    throw new Error('Storage failed');
+  };
+  const old = console.error;
+  console.error = () => {};
+  try {
+    assert.equal((await executeFire({ actor, loadout })).ok, false);
+    assert.equal(weaponCondition(actor, loadout.attack, loadout.malfunction).blocking, true);
+  } finally {
+    console.error = old;
+  }
+});
+
+test('secondary dice failure blocks a repeat and preserves ammunition for manual review', async () => {
+  const { actor, loadout } = fixture();
+  actor.id = 'dice-failed';
+  actor.uuid = 'Actor.dice-failed';
+  enableMalf(loadout);
+  GURPS.executeOTF = async () => {
+    GURPS.lastTargetedRolls[actor.id] = { thing: 'Pistol', rtotal: 18 };
+  };
+  globalThis.Roll = class {
+    async evaluate() {
+      throw new Error('Dice unavailable');
+    }
+  };
+  const old = console.error;
+  console.error = () => {};
+  try {
+    assert.equal((await executeFire({ actor, loadout })).ok, false);
+    assert.equal(weaponCondition(actor, loadout.attack, loadout.malfunction).kind, 'review');
+    assert.equal(actor.system.additionalresources.tracker['0000'].value, 6);
+  } finally {
+    console.error = old;
+  }
+});
+test('reliability confirmation passes without leaving a blocking condition', async () => {
+  const { actor, loadout } = fixture();
+  enableMalf(loadout, 'firearm', '17R');
+  malfRoll(18, 16, true);
+  const result = await executeFire({ actor, loadout });
+  assert.equal(result.spent, 1);
+  assert.equal(result.malfunction, null);
+  assert.equal(weaponCondition(actor, loadout.attack, loadout.malfunction), null);
+  assert.match(createdMessages.at(-1).content, /no malfunction/);
+});
+test('duplicate Fire calls stay locked through asynchronous malfunction resolution', async () => {
+  const { actor, loadout } = fixture();
+  enableMalf(loadout);
+  malfRoll(18);
+  let release;
+  globalThis.Roll = class {
+    async evaluate() {
+      await new Promise((resolve) => {
+        release = resolve;
+      });
+      this.total = 10;
+      return this;
+    }
+  };
+  const first = executeFire({ actor, loadout });
+  // Let the first call reach its secondary dice await.
+  for (let n = 0; n < 20 && !release; n++) await Promise.resolve();
+  assert.equal(typeof release, 'function');
+  const old = console.error;
+  console.error = () => {};
+  try {
+    assert.equal((await executeFire({ actor, loadout })).ok, false);
+  } finally {
+    console.error = old;
+  }
+  release();
+  await first;
+  assert.equal(actor.system.additionalresources.tracker['0000'].value, 5);
+});
+
+test('unknown attack totals do not claim that an actual critical miss has been superseded', async () => {
+  const { actor, loadout } = fixture();
+  enableMalf(loadout);
+  await executeFire({ actor, loadout });
+  assert.match(createdMessages.at(-1).content, /Attack needs review/);
+  assert.doesNotMatch(createdMessages.at(-1).content, /Resolve only the malfunction/);
+});
+test('external malfunction below the configured threshold defers to external resolution', async () => {
+  const { actor, loadout } = fixture();
+  enableMalf(loadout);
+  GURPS.executeOTF = async () => {
+    GURPS.lastTargetedRolls[actor.id] = { thing: 'Pistol', rtotal: 14, isMalfunction: true };
+  };
+  const result = await executeFire({ actor, loadout });
+  assert.equal(result.spent, 0);
+  assert.equal(result.malfunction.kind, 'review');
+});
