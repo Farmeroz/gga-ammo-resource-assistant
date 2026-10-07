@@ -521,7 +521,8 @@ test('critical prerequisite success still performs a separate attack roll', asyn
 
 test('cheap bow malfunction stops a two-arrow sequence, retains condition, and supersedes critical effects', async () => {
   const w = workflow();
-  w.data.start = 'ready'; w.data.twoArrows = true;
+  w.data.start = 'ready';
+  w.data.twoArrows = true;
   w.data.malfunction = { enabled: true, category: 'bow', value: '16' };
   const execute = GURPS.executeOTF;
   GURPS.executeOTF = async function (...args) {

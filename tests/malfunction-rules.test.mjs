@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { configuration, triggers, outcome, parseMalf, maintenanceResult } from '../scripts/malfunction-rules.mjs';
+import {
+  configuration,
+  triggers,
+  outcome,
+  parseMalf,
+  maintenanceResult,
+} from '../scripts/malfunction-rules.mjs';
 const config = (category = 'firearm', value = '17') => ({ enabled: true, category, value });
 test('malfunction thresholds use dice totals independently of critical-miss status', () => {
   for (let malf = 3; malf <= 20; malf++)
@@ -19,7 +25,8 @@ test('HT79 confirmation is distinct from numeric 18 and Very Reliable', () => {
   assert.equal(triggers(config('firearm', '17R'), 18, 16), false);
   assert.equal(triggers(config('firearm', '17R'), 17, 17), true);
   assert.equal(triggers(config('firearm', '18'), 18), true);
-  for (const bad of ['', '17junk', '17.5', 'Crit', '17+', 'Infinity', '-1']) assert.throws(() => parseMalf(bad));
+  for (const bad of ['', '17junk', '17.5', 'Crit', '17+', 'Infinity', '-1'])
+    assert.throws(() => parseMalf(bad));
 });
 test('every B407 table entry has the correct outcome and no burst-wide expenditure', () => {
   for (let n = 3; n <= 18; n++) {

@@ -1,4 +1,11 @@
-import { assertWeaponReady, resolveMalfunction, reportMalfunction, markApplied, malfunctionPanel, withWeaponLock } from './malfunction.mjs';
+import {
+  assertWeaponReady,
+  resolveMalfunction,
+  reportMalfunction,
+  markApplied,
+  malfunctionPanel,
+  withWeaponLock,
+} from './malfunction.mjs';
 import { MODULE_ID, VISIBILITY } from './constants.mjs';
 import {
   attackLabel,
@@ -132,7 +139,11 @@ export class ActionWorkflow {
     this.data = {
       kind,
       name: '',
-      malfunction: saved?.malfunction ?? { enabled: false, category: kind === 'bow' ? 'bow' : 'thrown', value: kind === 'bow' ? '16' : '17' },
+      malfunction: saved?.malfunction ?? {
+        enabled: false,
+        category: kind === 'bow' ? 'bow' : 'thrown',
+        value: kind === 'bow' ? '16' : '17',
+      },
       attackPath:
         attacks.find((a) => (kind === 'bow' ? /bow/i.test(a.name) : /throw/i.test(a.mode)))?.path ??
         '',
@@ -270,7 +281,11 @@ export class ActionWorkflow {
     const isObject = this.kind === 'object';
     let calc = null;
     if (!isObject) {
-      try { assertWeaponReady(this.actor, r.attack, d.malfunction); } catch (error) { errors.push(error.message); }
+      try {
+        assertWeaponReady(this.actor, r.attack, d.malfunction);
+      } catch (error) {
+        errors.push(error.message);
+      }
       if (!r.attack) errors.push('Choose the exact ranged attack and usage from the sheet.');
       if (
         r.attack &&
@@ -985,16 +1000,32 @@ export class ActionWorkflow {
           throw new Error(
             'GGA did not confirm the shot count. Attack rolled; adjust ammunition manually.',
           );
-        const malfunction = step.type === 'object' ? null : await resolveMalfunction(this.actor, p.r.attack, d.malfunction, result);
+        const malfunction =
+          step.type === 'object'
+            ? null
+            : await resolveMalfunction(this.actor, p.r.attack, d.malfunction, result);
         if (malfunction?.triggered) result.critical = false;
         const criticalEffect = result.critical
           ? this.makeEffect(
               'Critical attack failure. Resolve the GGA critical result and any weapon, injury, or readiness consequences with the GM.',
             )
           : null;
-        const changes = await this.spend(p.r.ammo, malfunction?.triggered ? malfunction.state.spent : 1, this.kind === 'throw' && !malfunction?.triggered, criticalEffect, malfunction?.change);
+        const changes = await this.spend(
+          p.r.ammo,
+          malfunction?.triggered ? malfunction.state.spent : 1,
+          this.kind === 'throw' && !malfunction?.triggered,
+          criticalEffect,
+          malfunction?.change,
+        );
         markApplied(this.actor, malfunction?.change);
-        if (malfunction) await reportMalfunction(this.actor, malfunction, VISIBILITY.INHERIT, result.visibility, malfunction.triggered ? changes : []);
+        if (malfunction)
+          await reportMalfunction(
+            this.actor,
+            malfunction,
+            VISIBILITY.INHERIT,
+            result.visibility,
+            malfunction.triggered ? changes : [],
+          );
         if (malfunction?.triggered) {
           this.status = malfunction.detail;
           this.lastDamage = null;

@@ -311,7 +311,8 @@ class ShotPromptBridge {
       );
       transaction.critical = transaction.rollSeen && Boolean(afterRoll.isCritFailure);
       transaction.total = transaction.rollSeen ? afterRoll.rtotal : transaction.chatTotal;
-      transaction.externalMalfunction = transaction.rollSeen && Boolean(afterRoll.malfunction || afterRoll.isMalfunction);
+      transaction.externalMalfunction =
+        transaction.rollSeen && Boolean(afterRoll.malfunction || afterRoll.isMalfunction);
       return transaction;
     } finally {
       this.active = null;

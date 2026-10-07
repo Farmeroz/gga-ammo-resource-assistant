@@ -665,7 +665,8 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
     try {
       if (this.workflow?.busy) return;
       if (action === 'malf-configure' || action === 'malf-maintain') {
-        if (this.workflow?.session) throw new Error('End the sequence before changing malfunction settings or condition.');
+        if (this.workflow?.session)
+          throw new Error('End the sequence before changing malfunction settings or condition.');
         this._readForm();
         const specialised = ACTION_KINDS.includes(this.mode);
         const data = specialised ? this.workflow.data : this.draft;

@@ -1,5 +1,11 @@
 import * as log from './log.mjs';
-import { assertWeaponReady, resolveMalfunction, reportMalfunction, markApplied, withWeaponLock } from './malfunction.mjs';
+import {
+  assertWeaponReady,
+  resolveMalfunction,
+  reportMalfunction,
+  markApplied,
+  withWeaponLock,
+} from './malfunction.mjs';
 import { MODULE_ID, FLAG_RECEIPT, SETTINGS, VISIBILITY } from './constants.mjs';
 import {
   attackLabel,
@@ -275,8 +281,12 @@ async function postCompatibilityWarning(actor, loadout) {
 }
 
 export async function executeFire(options = {}) {
-  try { return await withWeaponLock(options.actor, () => executeFireUnlocked(options)); }
-  catch (error) { notifyError(error); return { ok: false, reason: 'error', error }; }
+  try {
+    return await withWeaponLock(options.actor, () => executeFireUnlocked(options));
+  } catch (error) {
+    notifyError(error);
+    return { ok: false, reason: 'error', error };
+  }
 }
 
 async function executeFireUnlocked({
@@ -372,14 +382,20 @@ async function executeFireUnlocked({
 
     const malfunction = await resolveMalfunction(actor, attack, loadout.malfunction, roll);
     if (malfunction?.triggered) {
-      cost = malfunction.state.spent > 0 ? calculateSpend(malfunction.state.spent, loadout.unitsPerShot, loadout.flatCost) : 0;
+      cost =
+        malfunction.state.spent > 0
+          ? calculateSpend(malfunction.state.spent, loadout.unitsPerShot, loadout.flatCost)
+          : 0;
     }
     const current = trackerValue(actor, ammo.path);
     const spendable = Math.max(current - minimum, 0);
     const after = overrideShortage ? current - cost : Math.max(current - cost, minimum);
     const shortage = Math.max(cost - spendable, 0);
     const updatePath = `system.${ammo.path}.value`;
-    const changes = [{ path: updatePath, before: current, after }, ...(malfunction?.change ? [malfunction.change] : [])];
+    const changes = [
+      { path: updatePath, before: current, after },
+      ...(malfunction?.change ? [malfunction.change] : []),
+    ];
     await actor.update(Object.fromEntries(changes.map((change) => [change.path, change.after])));
     markApplied(actor, malfunction?.change);
 
@@ -391,23 +407,37 @@ async function executeFireUnlocked({
       warnings.push(`${ammo.name} is low: ${remaining} available.`);
 
     if (malfunction) {
-      await reportMalfunction(actor, malfunction, loadout.visibility, roll.visibility, malfunction.triggered ? changes : []);
+      await reportMalfunction(
+        actor,
+        malfunction,
+        loadout.visibility,
+        roll.visibility,
+        malfunction.triggered ? changes : [],
+      );
     }
-    if (!malfunction?.triggered) await postReceiptSafely({
-      actor,
-      title: attackLabel(attack),
-      summary: `${ammo.name}: ${current} → ${after}`,
-      details: [
-        `${chosenShots} shot${chosenShots === 1 ? '' : 's'}`,
-        cost === chosenShots ? '' : `${cost} resource units spent`,
-      ],
-      changes: [{ path: updatePath, before: current, after }],
-      warning: warnings.join('  '),
-      visibility: loadout.visibility,
-      inheritedVisibility: roll.visibility,
-    });
+    if (!malfunction?.triggered)
+      await postReceiptSafely({
+        actor,
+        title: attackLabel(attack),
+        summary: `${ammo.name}: ${current} → ${after}`,
+        details: [
+          `${chosenShots} shot${chosenShots === 1 ? '' : 's'}`,
+          cost === chosenShots ? '' : `${cost} resource units spent`,
+        ],
+        changes: [{ path: updatePath, before: current, after }],
+        warning: warnings.join('  '),
+        visibility: loadout.visibility,
+        inheritedVisibility: roll.visibility,
+      });
 
-    return { ok: true, shots: chosenShots, spent: cost, before: current, after, malfunction: malfunction?.state ?? null };
+    return {
+      ok: true,
+      shots: chosenShots,
+      spent: cost,
+      before: current,
+      after,
+      malfunction: malfunction?.state ?? null,
+    };
   } catch (error) {
     notifyError(error);
     return { ok: false, reason: 'error', error };
