@@ -77,7 +77,7 @@ export async function resolveMalfunction(actor, attack, input, attackRoll) {
   const c = validateMalf(input);
   if (!c.enabled || c.category === 'thrown') return null;
   const rolls = [];
-  let triggered = triggers(c, attackRoll.total);
+  let triggered = attackRoll.externalMalfunction ? null : triggers(c, attackRoll.total);
   if (triggered === false) return null;
   const path = conditionPath(attack, c);
   pending.set(memoryKey(actor, path), {
@@ -129,6 +129,7 @@ export async function resolveMalfunction(actor, attack, input, attackRoll) {
     id: foundry.utils.randomID?.() || crypto.randomUUID(),
     attackTotal: attackRoll.total,
     category: c.category,
+    malf: c.value,
     diagnosed: false,
   };
   const change = conditionChange(actor, attack, c, state);
@@ -139,11 +140,16 @@ export async function reportMalfunction(actor, result, visibility, inherited, ch
   if (!result) return;
   await postReceiptSafely({
     actor,
-    title: result.triggered ? 'Malfunction' : 'Reliability check',
+    title: result.state?.kind === 'review' ? 'Attack needs review' : result.triggered ? 'Malfunction' : 'Reliability check',
     summary: result.detail,
     details: result.triggered
       ? [
-          'Resolve only the malfunction, not an additional critical-miss result (GURPS 4e FAQ 3.4.2.4).',
+          result.state.kind === 'review'
+            ? 'Determine the original attack outcome before resolving critical effects or ammunition.'
+            : 'Resolve only the malfunction, not an additional critical-miss result (GURPS 4e FAQ 3.4.2.4).',
+          Number.isInteger(result.state.attackTotal) ? `Attack dice: ${result.state.attackTotal}; effective Malf. ${result.state.malf}.` : '',
+          Number.isInteger(result.state.table) ? `Malfunction table: ${result.state.table}.` : '',
+          ...changes.filter(change => change.path.startsWith('system.')).map(change => `Ammunition: ${change.before} → ${change.after}.`),
           'Ammunition tracks usable rounds. Use Adjust for ejected rounds, charges, or weapon-specific exceptions.',
         ]
       : [],
