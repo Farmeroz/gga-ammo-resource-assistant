@@ -17,5 +17,7 @@
   "scripts/store.mjs",
   "scripts/tooltip-engine.mjs",
   "styles/ammo-assistant.css",
-  "templates/ammo-assistant.hbs"
+  "templates/ammo-assistant.hbs",
+  "scripts/malfunction.mjs",
+  "scripts/malfunction-rules.mjs"
 ]

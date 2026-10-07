@@ -6,6 +6,12 @@ Choose an action first: **Fire**, **Bow sequence**, **Throw a weapon**, **Throw 
 
 Bow sequences support Fast-Draw, quick-shooting, Heroic Archer, applicable Weapon Master, and two-arrow attacks. Weapon throws support multiple throws and Heroic Thrower. Object throws calculate range, handling, and damage using DX, Throwing, or Throwing Art. Saved action shortcuts reopen the guided workflow.
 
+## Prerelease 1.2.0-beta.1
+
+Optional GURPS Fourth Edition malfunction settings now accompany Fire and bow/throw loadouts. Actual attack dice determine malfunctions; weapon condition persists, and ammunition follows the outcome. Use Weapon condition to record completed clearing and repairs. Existing loadouts default off.
+
+Install this testing build with its [prerelease manifest](https://github.com/Farmeroz/gga-ammo-resource-assistant/releases/download/v1.2.0-beta.1/module.json). The stable release and stable manifest remain v1.1.2. Save any configuration changes as a loadout to retain them.
+
 ## What's new in 1.1.2
 
 - **Run sequence** handles preparation and attacks in one click. **One step** remains available, and different-target sequences pause for retargeting.

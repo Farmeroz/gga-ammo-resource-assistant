@@ -36,3 +36,20 @@ Use the following scenarios for future regression checks:
 ## Package verification
 
 The build checks module/package versions, install URLs, declared assets, local imports, the allowed archive file list, and every archived file's bytes. The release ZIP contains only runtime files, the licence, and user documentation.
+
+## Malfunction prerelease live testing
+
+Use the version-specific beta manifest. Stable v1.1.2 is unchanged.
+
+- Confirm old loadouts still fire normally with malfunctions off. Save/reopen settings and use the hotbar.
+- Use controlled GGA attack dice to test totals below, equal to, and above Malf.; a critical miss below Malf. must not malfunction.
+- Fire a burst and resolve a stoppage: only one shot's cost should be spent. Check the receipt's instruction to resolve one shot without the burst bonus.
+- Test mechanical trouble, revolver misfire, beam stoppage, grenade dud/delay, and an eligible low-TL explosion. Resolve damage at the table.
+- Test a cheap bow two-arrow sequence: a malfunction stops it, records breakage, and does not create a second critical-effect record.
+- Reopen the assistant, use a shared identifier from another loadout, disable detection, and reload ammunition. Existing blocking condition should remain.
+- Record diagnosis, failed clearing, critical clearing, successful repair, and critical repair. Ammunition should not refill.
+- Test public, GM, self, and blind rolls with ordinary receipts off. Malfunction dice/results should retain the selected visibility.
+- Undo ammunition/condition together, then test that a later adjustment or repair prevents stale undo.
+- Keep any other automatic critical-table resolver disabled for malfunction-assisted attacks; GGA's original critical label is superseded by the malfunction receipt.
+
+Automated tests cover threshold/table boundaries, special reliability, weapon categories, actual dice capture, partial expenditure, state persistence, visibility, guarded undo, clearing/repair transitions, and bow/throw integration. Live acceptance of this feature is pending.

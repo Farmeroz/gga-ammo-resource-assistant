@@ -1,3 +1,4 @@
+import { assertWeaponReady, resolveMalfunction, reportMalfunction, markApplied, malfunctionPanel, withWeaponLock } from './malfunction.mjs';
 import { MODULE_ID, VISIBILITY } from './constants.mjs';
 import {
   attackLabel,
@@ -131,6 +132,7 @@ export class ActionWorkflow {
     this.data = {
       kind,
       name: '',
+      malfunction: saved?.malfunction ?? { enabled: false, category: kind === 'bow' ? 'bow' : 'thrown', value: kind === 'bow' ? '16' : '17' },
       attackPath:
         attacks.find((a) => (kind === 'bow' ? /bow/i.test(a.name) : /throw/i.test(a.mode)))?.path ??
         '',
@@ -268,6 +270,7 @@ export class ActionWorkflow {
     const isObject = this.kind === 'object';
     let calc = null;
     if (!isObject) {
+      try { assertWeaponReady(this.actor, r.attack, d.malfunction); } catch (error) { errors.push(error.message); }
       if (!r.attack) errors.push('Choose the exact ranged attack and usage from the sheet.');
       if (
         r.attack &&
@@ -685,6 +688,7 @@ export class ActionWorkflow {
       '<p class="hint">Rules checks are advisory. You can roll with unmet checks; they will be listed in chat automatically.</p>';
     body +=
       '<p class="hint">Manual links identify renamed traits. Select Weapon Master only when its specialisation covers this weapon. Modifiers, hands, and readiness are declarations; combat turns are not advanced automatically.</p></fieldset></details>';
+    if (!object) body += malfunctionPanel(this.actor, p.r.attack, d.malfunction);
     body += `<div class="gga-ara-workflow-status" role="status">${esc(this.status)}</div>`;
     const effect = this.pendingEffect();
     if (effect)
@@ -796,6 +800,7 @@ export class ActionWorkflow {
       attack: recordReference(r.attack, 'attack'),
       ammo: recordReference(r.ammo),
       workflow,
+      malfunction: structuredClone(this.data.malfunction),
       shots: 1,
       unitsPerShot: 1,
       flatCost: 0,
@@ -875,6 +880,9 @@ export class ActionWorkflow {
     }
   }
   async _step() {
+    return withWeaponLock(this.actor, () => this._stepUnlocked());
+  }
+  async _stepUnlocked() {
     const p = this.compute();
     if (!p.allowed)
       throw new Error([...p.errors, ...p.access.failed.map((c) => c.label)].join(' '));
@@ -977,12 +985,23 @@ export class ActionWorkflow {
           throw new Error(
             'GGA did not confirm the shot count. Attack rolled; adjust ammunition manually.',
           );
+        const malfunction = step.type === 'object' ? null : await resolveMalfunction(this.actor, p.r.attack, d.malfunction, result);
+        if (malfunction?.triggered) result.critical = false;
         const criticalEffect = result.critical
           ? this.makeEffect(
               'Critical attack failure. Resolve the GGA critical result and any weapon, injury, or readiness consequences with the GM.',
             )
           : null;
-        const changes = await this.spend(p.r.ammo, 1, this.kind === 'throw', criticalEffect);
+        const changes = await this.spend(p.r.ammo, malfunction?.triggered ? malfunction.state.spent : 1, this.kind === 'throw' && !malfunction?.triggered, criticalEffect, malfunction?.change);
+        markApplied(this.actor, malfunction?.change);
+        if (malfunction) await reportMalfunction(this.actor, malfunction, VISIBILITY.INHERIT, result.visibility, malfunction.triggered ? changes : []);
+        if (malfunction?.triggered) {
+          this.status = malfunction.detail;
+          this.lastDamage = null;
+          this.session = null;
+          if (this.kind === 'bow') d.start = 'stowed';
+          return;
+        }
         this.lastDamage =
           step.type === 'object'
             ? `${p.calc.damage} ${d.profile === 'ordinary' ? d.damageType : p.calc.type}`
@@ -1051,21 +1070,22 @@ export class ActionWorkflow {
       this.busy = false;
     }
   }
-  async spend(ammo, amount, recoverable = false, effect = null) {
+  async spend(ammo, amount, recoverable = false, effect = null, condition = null) {
     if (effect) this.unrecordedEffect = effect;
     if (!ammo || !amount) {
+      if (condition) await this.actor.update({ [condition.path]: condition.after });
       if (effect) {
         await this.actor.update({ [this.effectPath]: effect });
         this.unrecordedEffect = null;
       }
-      return [];
+      return condition ? [condition] : [];
     }
     const before = trackerValue(this.actor, ammo.path);
     if (before - enforcedMinimum(ammo) < amount)
       throw new Error('The tracker changed during the roll. Adjust ammunition manually.');
     const after = before - amount,
       path = `system.${ammo.path}.value`;
-    const changes = [{ path, before, after }];
+    const changes = [{ path, before, after }, ...(condition ? [condition] : [])];
     if (recoverable) {
       const path = `flags.${MODULE_ID}.recoverable.${ammo.key}`;
       const before = number(foundry.utils.getProperty(this.actor, path)) ?? 0;

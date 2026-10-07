@@ -1,0 +1,59 @@
+name: Malfunction prerelease
+on:
+  push:
+    branches: [feature/optional-malfunctions]
+permissions:
+  contents: write
+concurrency:
+  group: malfunction-prerelease
+  cancel-in-progress: false
+jobs:
+  verify-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/optional-malfunctions
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Normalise formatting on the development branch
+        run: |
+          npm run format
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts tests templates tools module.json package.json package-lock.json .github README.md USER-GUIDE.md TESTING.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Format malfunction prerelease source"
+            git push origin HEAD:feature/optional-malfunctions
+          fi
+      - run: npm run test:setup
+      - run: npm run check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: malfunction-verified-package
+          path: dist/
+          if-no-files-found: error
+      - name: Publish isolated prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          version=$(node -p 'JSON.parse(require("fs").readFileSync("module.json")).version')
+          case "$version" in *-beta.*) ;; *) echo "Refusing a stable release"; exit 1;; esac
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Prerelease already exists. Bump beta version to publish changed code."
+            exit 0
+          fi
+          gh release create "$tag" dist/* --target "$(git rev-parse HEAD)" --prerelease --latest=false --title "Malfunction support $version" --notes "Optional GURPS 4e malfunction support for live testing. Stable v1.1.2 remains unchanged. See USER-GUIDE.md and TESTING.md in this prerelease."
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: malfunction-test-diagnostics
+          path: test-output/
+          if-no-files-found: ignore

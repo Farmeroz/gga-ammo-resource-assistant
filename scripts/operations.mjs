@@ -1,4 +1,5 @@
 import * as log from './log.mjs';
+import { assertWeaponReady, resolveMalfunction, reportMalfunction, markApplied, withWeaponLock } from './malfunction.mjs';
 import { MODULE_ID, FLAG_RECEIPT, SETTINGS, VISIBILITY } from './constants.mjs';
 import {
   attackLabel,
@@ -209,8 +210,10 @@ async function postReceipt({
   warning = '',
   visibility,
   inheritedVisibility,
+  force = false,
+  rolls = [],
 }) {
-  if (!game.settings.get(MODULE_ID, SETTINGS.CHAT_RECEIPTS)) return null;
+  if (!force && !game.settings.get(MODULE_ID, SETTINGS.CHAT_RECEIPTS)) return null;
   const detailHtml = details
     .filter(Boolean)
     .map((detail) => `<span>${escapeHtml(detail)}</span>`)
@@ -222,7 +225,7 @@ async function postReceipt({
       ${detailHtml ? `<div class="gga-ara-receipt-details">${detailHtml}</div>` : ''}
       ${warning ? `<div class="gga-ara-receipt-warning"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(warning)}</div>` : ''}
       <footer>
-        <button type="button" data-gga-ara-action="undo"><i class="fa-solid fa-rotate-left"></i> Undo</button>
+        ${changes?.length ? '<button type="button" data-gga-ara-action="undo"><i class="fa-solid fa-rotate-left"></i> Undo</button>' : ''}
         <span class="gga-ara-undone" hidden>Undone</span>
       </footer>
     </section>`;
@@ -230,6 +233,7 @@ async function postReceipt({
     user: game.user.id,
     speaker: ChatMessage.getSpeaker({ actor }),
     content,
+    ...(rolls.length ? { rolls } : {}),
     flags: {
       [MODULE_ID]: {
         [FLAG_RECEIPT]: {
@@ -270,7 +274,12 @@ async function postCompatibilityWarning(actor, loadout) {
   });
 }
 
-export async function executeFire({
+export async function executeFire(options = {}) {
+  try { return await withWeaponLock(options.actor, () => executeFireUnlocked(options)); }
+  catch (error) { notifyError(error); return { ok: false, reason: 'error', error }; }
+}
+
+async function executeFireUnlocked({
   actor,
   loadout,
   shots = null,
@@ -289,6 +298,7 @@ export async function executeFire({
     const attack = resolved.attackResult.record;
     const ammo = resolved.ammoResult.record;
     const minimum = enforcedMinimum(ammo);
+    assertWeaponReady(actor, attack, loadout.malfunction);
 
     const duplicates = resolved.attacks.filter(
       (candidate) => attackLabel(candidate) === attackLabel(attack),
@@ -360,12 +370,18 @@ export async function executeFire({
       return { ok: false, reason: 'compatibility' };
     }
 
+    const malfunction = await resolveMalfunction(actor, attack, loadout.malfunction, roll);
+    if (malfunction?.triggered) {
+      cost = malfunction.state.spent > 0 ? calculateSpend(malfunction.state.spent, loadout.unitsPerShot, loadout.flatCost) : 0;
+    }
     const current = trackerValue(actor, ammo.path);
     const spendable = Math.max(current - minimum, 0);
     const after = overrideShortage ? current - cost : Math.max(current - cost, minimum);
     const shortage = Math.max(cost - spendable, 0);
     const updatePath = `system.${ammo.path}.value`;
-    await actor.update({ [updatePath]: after });
+    const changes = [{ path: updatePath, before: current, after }, ...(malfunction?.change ? [malfunction.change] : [])];
+    await actor.update(Object.fromEntries(changes.map((change) => [change.path, change.after])));
+    markApplied(actor, malfunction?.change);
 
     const threshold = automaticLowWarning(loadout, attack);
     const warnings = [];
@@ -374,7 +390,10 @@ export async function executeFire({
     if (threshold > 0 && remaining <= threshold)
       warnings.push(`${ammo.name} is low: ${remaining} available.`);
 
-    await postReceiptSafely({
+    if (malfunction) {
+      await reportMalfunction(actor, malfunction, loadout.visibility, roll.visibility, malfunction.triggered ? changes : []);
+    }
+    if (!malfunction?.triggered) await postReceiptSafely({
       actor,
       title: attackLabel(attack),
       summary: `${ammo.name}: ${current} → ${after}`,
@@ -388,7 +407,7 @@ export async function executeFire({
       inheritedVisibility: roll.visibility,
     });
 
-    return { ok: true, shots: chosenShots, spent: cost, before: current, after };
+    return { ok: true, shots: chosenShots, spent: cost, before: current, after, malfunction: malfunction?.state ?? null };
   } catch (error) {
     notifyError(error);
     return { ok: false, reason: 'error', error };

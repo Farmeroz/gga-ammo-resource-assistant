@@ -1,4 +1,5 @@
 import * as log from './log.mjs';
+import { configureMalfunction, malfunctionPanel, maintainWeapon } from './malfunction.mjs';
 import { ActionWorkflow } from './action-workflow.mjs';
 import { ACTION_KINDS } from './action-rules.mjs';
 import {
@@ -284,6 +285,7 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
       isHome: this.mode === ACTIONS.HOME,
       isWorkflow: specialised,
       workflowHtml: specialised ? this.workflow.render() : '',
+      malfunctionHtml: malfunctionPanel(actor, attack, this.draft.malfunction),
       showLoadoutStrip:
         !specialised && this.mode !== ACTIONS.HOME && this.mode !== ACTIONS.LOADOUTS,
       loadouts: loadoutOptions,
@@ -662,6 +664,18 @@ export class AmmoAssistantApp extends HandlebarsApplicationMixin(ApplicationV2) 
   async _handleAction(action, target) {
     try {
       if (this.workflow?.busy) return;
+      if (action === 'malf-configure' || action === 'malf-maintain') {
+        if (this.workflow?.session) throw new Error('End the sequence before changing malfunction settings or condition.');
+        this._readForm();
+        const specialised = ACTION_KINDS.includes(this.mode);
+        const data = specialised ? this.workflow.data : this.draft;
+        const attack = specialised ? this.workflow.records().attack : this._currentRecords().attack;
+        if (action === 'malf-configure') {
+          const configured = await configureMalfunction(data.malfunction);
+          if (configured) data.malfunction = configured;
+        } else await maintainWeapon(this.actor, attack, data.malfunction, data.visibility);
+        return this.render({ force: true });
+      }
       if (action.startsWith('wf-')) {
         this.workflow.read(this.element);
         if (action === 'wf-next' || action === 'wf-run') {
